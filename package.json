@@ -1,0 +1,40 @@
+{
+  "author": {
+    "name": "Mitra Ardron",
+    "email": "mitra@archive.org",
+    "url": "http://www.mitra.biz"
+  },
+  "browser": {
+    "node-fetch": false
+  },
+  "bugs": {
+    "url": "https://github.com/internetarchive/dweb-objects/issues"
+  },
+  "dependencies": {
+    "dweb-transports": "git+https://git@github.com/internetarchive/dweb-transports.git",
+    "crypto": "latest",
+    "custom-event": "latest",
+    "libsodium-wrappers": "git+https://git@github.com/mitra42/libsodium.js.git",
+    "multihashes": "latest"
+  },
+  "description": "Internet Archive Decentralized Web Transports Library",
+  "devDependencies": {
+    "jsdom": "latest",
+    "y-leveldb": "latest"
+  },
+  "homepage": "https://github.com/internetarchive/dweb-objects#readme",
+  "keywords": [],
+  "license": "AGPL-3.0",
+  "main": "index.js",
+  "name": "dweb-objects",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/internetarchive/dweb-objects.git"
+  },
+  "scripts": {
+    "test": "node ./test.js",
+    "webpack": "webpack --mode development",
+    "help": "echo 'test (test it)'; webpack (build it)"
+  },
+  "version": "0.1.0"
+}
