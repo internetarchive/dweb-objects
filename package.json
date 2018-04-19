@@ -19,6 +19,7 @@
   },
   "description": "Internet Archive Decentralized Web Transports Library",
   "devDependencies": {
+    "chai": "latest",
     "jsdom": "latest",
     "y-leveldb": "latest"
   },

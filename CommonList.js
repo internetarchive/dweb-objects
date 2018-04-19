@@ -1,5 +1,5 @@
 const errors = require('./Errors'); // Standard Dweb Errors
-const Transports = require('dweb-transports'); // Manage all Transports that are loaded
+const Transports = require('dweb-transports'); // Manage all Transports that are loaded //TODO-SW use DwebTransports, and assume setup external to this so can switch between SW and non-SW versions
 const SmartDict = require('./SmartDict'); // General handling of JSON structures
 const Signature = require('./Signature'); // Encapsulate a signature as used for items on a CommonList
 const PublicPrivate = require("./PublicPrivate"); //for extends
