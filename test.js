@@ -204,7 +204,7 @@ async function p_test_TransportYJS(opts={}, verbose) {
         let listlen = res.length;   // Holds length of list run intermediate
         if (verbose) console.log("rawlist returned ", ...utils.consolearr(res));
         let monitoredobj;
-        transport.listmonitor(testurl, (obj) => (monitoredobj = obj), verbose);
+        transport.listmonitor(testurl, (obj) => (monitoredobj = obj), {verbose});
         let sig = new Signature({urls: ["123"], date: new Date(Date.now()), signature: "Joe Smith", signedby: [testurl]}, verbose);
         await transport.p_rawadd(testurl, sig, {verbose});
         if (verbose) console.log("TransportYJS.p_rawadd returned ");

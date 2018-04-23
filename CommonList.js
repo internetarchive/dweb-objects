@@ -192,7 +192,7 @@ class CommonList extends PublicPrivate {
                     } else {
                         console.log("Rejected signature: ",sig);
                     }
-                });
+                }, {verbose});
     }
 }
 SmartDict.table2class["cl"] = CommonList;
