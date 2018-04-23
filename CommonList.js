@@ -1,5 +1,5 @@
 const errors = require('./Errors'); // Standard Dweb Errors
-const Transports = require('dweb-transports'); // Manage all Transports that are loaded //TODO-SW use DwebTransports, and assume setup external to this so can switch between SW and non-SW versions
+// Depends on var DwebTransports being set externally - its done this way so that both direct and ServiceWorker/Proxy can be used
 const SmartDict = require('./SmartDict'); // General handling of JSON structures
 const Signature = require('./Signature'); // Encapsulate a signature as used for items on a CommonList
 const PublicPrivate = require("./PublicPrivate"); //for extends
@@ -47,7 +47,7 @@ class CommonList extends PublicPrivate {
     static async p_new(data, master, key, verbose, options) {
         let obj = await super.p_new(data, master, key, verbose, options); // Note will call constructor
         if (obj._master && (!obj.listurls || !obj.listurls.length)) {
-            [obj.listurls,obj.listpublicurls] = await Transports.p_newlisturls(obj, {verbose});
+            [obj.listurls,obj.listpublicurls] = await DwebTransports.p_newlisturls(obj, {verbose});
         }
         return obj;
     }
@@ -85,7 +85,7 @@ class CommonList extends PublicPrivate {
         */
         if (!this.storedpublic())
             await this._p_storepublic(verbose);
-        let lines = await Transports.p_rawlist(this.listpublicurls, {verbose}); // [[sig,sig],[sig,sig]]
+        let lines = await DwebTransports.p_rawlist(this.listpublicurls, {verbose}); // [[sig,sig],[sig,sig]]
         if (verbose) console.log("CommonList:p_fetchlist.success", this._urls, "len=", lines.length);
         this._list = lines
             .map((l) => new Signature(l, verbose))    // Turn each line into a Signature
@@ -160,7 +160,7 @@ class CommonList extends PublicPrivate {
          */
         if (!sig) throw new errors.CodingError("CommonList.p_add is meaningless without a sig");
         if (! utils.intersects(sig.signedby, this._publicurls)) throw new errors.CodingError(`CL.p_add: sig.signedby ${sig.signedby} should overlap with this._publicurls ${this._publicurls}`);
-        return await Transports.p_rawadd(this.listpublicurls, sig, {verbose});
+        return await DwebTransports.p_rawadd(this.listpublicurls, sig, {verbose});
     }
 
     objbrowser_fields(propname) {
@@ -178,7 +178,7 @@ class CommonList extends PublicPrivate {
         /*
         Add a listmonitor for each transport - note this means if multiple transports support it, then will get duplicate events back if everyone else is notifying all of them.
          */
-        Transports.listmonitor(this.listpublicurls, //TODO-SW wont work yet
+        DwebTransports.listmonitor(this.listpublicurls, //TODO-SW wont work yet
                 (obj) => {
                     if (verbose) console.log("listmonitor added",obj,"to",this.listpublicurls);
                     let sig = new Signature(obj, verbose);

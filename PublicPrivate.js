@@ -1,5 +1,5 @@
 const errors = require('./Errors'); // Standard Dweb Errors
-const Transports = require('dweb-transports'); // Manage all Transports that are loaded
+// Depends on var DwebTransports being set externally - its done this way so that both direct and ServiceWorker/Proxy can be used
 const SmartDict = require("./SmartDict"); //for extends
 const KeyPair = require('./KeyPair'); // Encapsulate public/private key pairs and crypto libraries
 const Signature = require('./Signature'); // Encapsulate a signature as used for items on a CommonList
@@ -23,7 +23,7 @@ class PublicPrivate extends SmartDict {
     CL.p_store:  this._p_storepublic; SmartDict.p_store
     KVP.p_store: SmartDict.p_store
     _p_storepublic: constructor(preflight, false) -> p_store -> set _publicurls
-    SmartDict.p_store: this._getdata -> Transports.p_rawstore
+    SmartDict.p_store: this._getdata -> DwebTransports.p_rawstore
         SD._getdata: build dd -> preflight -> JSON.stringify
             SD.preflight: filter out _*
             <class>.preflight: other filters
@@ -143,7 +143,7 @@ class PublicPrivate extends SmartDict {
 
     async _p_storepublic(verbose) {
         // Store public version, dont encrypt on storing as want public part to be publicly visible (esp for Domain)
-        this._publicurls = await Transports.p_rawstore( this._getdata({publicOnly: true, encryptIfAcl:false}), {verbose});
+        this._publicurls = await DwebTransports.p_rawstore( this._getdata({publicOnly: true, encryptIfAcl:false}), {verbose});
     }
     storedpublic() {
         return this._publicurls.length > 0
@@ -231,7 +231,7 @@ class PublicPrivate extends SmartDict {
 
     dispatchEvent(event) {
         /* Called when event triggered by monitor or listmonitor
-           Stack: KVT()|KVT.p_new => KVT.monitor => (a: Transports.monitor => YJS.monitor)(b: dispatchEvent)
+           Stack: KVT()|KVT.p_new => KVT.monitor => (a: DwebTransports.monitor => YJS.monitor)(b: dispatchEvent)
          */
 
 

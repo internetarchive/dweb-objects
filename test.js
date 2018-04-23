@@ -6,7 +6,7 @@ htmlfake = '<!DOCTYPE html></html>';
 const dom = new JSDOM(htmlfake);
 document = dom.window.document;   // Note in JS can't see "document" like can in python
 
-const Transports = require('dweb-transports'); // Manage all Transports that are loaded //TODO-REFACTOR mvoe to DwebTransports
+const DwebTransports = require('dweb-transports'); // Manage all Transports that are loaded //TODO-REFACTOR mvoe to DwebTransports
 //SEE-OTHER-ADDTRANSPORT
 // Higher level object classes
 const SmartDict = require('./SmartDict');
@@ -29,7 +29,7 @@ const Domain = require('./Domain');
 function delay(ms, val) { return new Promise(resolve => {setTimeout(() => { resolve(val); },ms)})}
 
 
-require('y-leveldb')(Transports._transportclasses["YJS"].Y); //- can't be there for browser, node seems to find it ok without this, though not sure why, though its the cause of the warning: YJS: Please do not depend on automatic requiring of modules anymore! Extend modules as follows `require('y-modulename')(Y)`
+require('y-leveldb')(DwebTransports._transportclasses["YJS"].Y); //- can't be there for browser, node seems to find it ok without this, though not sure why, though its the cause of the warning: YJS: Please do not depend on automatic requiring of modules anymore! Extend modules as follows `require('y-modulename')(Y)`
 let verbose = false;
     // Note that this test setup is being mirror in test_ipfs.html
     // In general it should be possible to comment out failing tests EXCEPT where they provide a value to the next */
@@ -46,14 +46,14 @@ async function p_test(verbose) {
 
         // Note the order of these is significant, it will retrieve by preference from the first setup, try with both orders if in doubt.
         //SEE-OTHER-ADDTRANSPORT
-        let t_http = await Transports._transportclasses["HTTP"].p_test(opts, verbose);
-        //let t_ipfs = await Transports._transportclasses["IPFS"].p_test(opts, verbose); // Note browser requires indexeddb
-        //let t_yjs = await Transports._transportclasses["YJS"].p_test(opts, verbose); // Should find ipfs transport
-        //let t_webtorrent = await Transports._transportclasses["WEBTORRENT"].p_test(opts, verbose); //
+        let t_http = await DwebTransports._transportclasses["HTTP"].p_test(opts, verbose);
+        //let t_ipfs = await DwebTransports._transportclasses["IPFS"].p_test(opts, verbose); // Note browser requires indexeddb
+        //let t_yjs = await DwebTransports._transportclasses["YJS"].p_test(opts, verbose); // Should find ipfs transport
+        //let t_webtorrent = await DwebTransports._transportclasses["WEBTORRENT"].p_test(opts, verbose); //
         // Note that p_tests call p_status which is needed on some protocols or they wont be used
         if (verbose) console.log("setup returned and transport(s) set");
-        await Transports.test(verbose);
-        if (verbose) console.log("Transports tested");
+        await DwebTransports.test(verbose);
+        if (verbose) console.log("DwebTransports tested");
         await p_test_Signature(verbose);
         await KeyPair.test(verbose);
         let res = await AccessControlList.p_test(verbose);
@@ -67,7 +67,7 @@ async function p_test(verbose) {
         await delay(1000);
         console.log("------AWAITED ANY BACKGROUND OUTPUT STARTING NEXT TEST =====");
         verbose=true;
-        let t = Transports.http();
+        let t = DwebTransports.http();
         turlbaseold = t.urlbase;
         t.urlbase = "https://gateway.dweb.me:443";  // Switchc to real gateway to test resolution
         await Domain.p_test_gateway(verbose);

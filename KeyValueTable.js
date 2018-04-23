@@ -1,8 +1,8 @@
-const Transports = require('dweb-transports'); // Manage all Transports that are loaded
 const SmartDict = require("./SmartDict");   // _AccessControlListEntry extends this
 const PublicPrivate = require("./PublicPrivate"); //for extends
 const utils = require('./utils'); // Utility functions
 const CustomEvent = require('custom-event'); // From web, Not present in node - this code uses global.CustomEvent if it exists so safe on browser/node
+// Depends on var DwebTransports being set externally - its done this way so that both direct and ServiceWorker/Proxy can be used
 
 class KeyValueTable extends PublicPrivate {
     /*
@@ -48,7 +48,7 @@ class KeyValueTable extends PublicPrivate {
         const obj = await super.p_new(data, master, key, verbose, options);
         // Should set this._autoset to true if and only if master && urls set in data or options
         if (master && !(obj.tablepublicurls && obj.tablepublicurls.length)) {
-            const res = await Transports.p_newtable(obj, keyvaluetable, {verbose});
+            const res = await DwebTransports.p_newtable(obj, keyvaluetable, {verbose});
             obj.tableurls = res.privateurls;
             obj.tablepublicurls = res.publicurls.concat(seedurls);
             obj._autoset = true;
@@ -122,7 +122,7 @@ class KeyValueTable extends PublicPrivate {
         //TODO-KEYVALUE these sets need to be signed if the transport overwrites the previous, rather than appending
         //TODO-KEYVALUE the difference is that if appended, then an invalid signature (if reqd) in the value would cause it to be discarded.
         if (this._autoset && !fromNet && (this._map[name] !== value)) {
-            await Transports.p_set(this.tableurls, name, this._storageFromMap(value, {publicOnly, encryptIfAcl}), {verbose}); // Note were not waiting for result but have to else hit locks
+            await DwebTransports.p_set(this.tableurls, name, this._storageFromMap(value, {publicOnly, encryptIfAcl}), {verbose}); // Note were not waiting for result but have to else hit locks
         }
         if (!((value instanceof PublicPrivate) && this._map[name] && this._map[name]._master)) {
             // Dont overwrite the name:value pair if we already hold the master copy. This is needed for Domain, but probably generally useful
@@ -144,7 +144,7 @@ class KeyValueTable extends PublicPrivate {
         }
         if (!keys.every(k => this._map[k])) {
             // If we dont have all the keys, get from transport
-            const res = await Transports.p_get(this.tablepublicurls, keys, {verbose});
+            const res = await DwebTransports.p_get(this.tablepublicurls, keys, {verbose});
             this._updatemap(res);
         }
         // Return from _map after possibly updating it
@@ -154,13 +154,13 @@ class KeyValueTable extends PublicPrivate {
         /*
         returns array of all keys
          */
-        return await Transports.p_keys(this.tablepublicurls, {verbose})
+        return await DwebTransports.p_keys(this.tablepublicurls, {verbose})
     }
     async p_getall(verbose) {
         /*
         returns dictionary of all keys
          */
-        const res = await Transports.p_getall(this.tablepublicurls, verbose);
+        const res = await DwebTransports.p_getall(this.tablepublicurls, verbose);
         this._updatemap(res);
         return this._map;
     }
@@ -168,7 +168,7 @@ class KeyValueTable extends PublicPrivate {
     async p_delete(name, {fromNet=false, verbose=false}={}) {
         delete this._map[name]; // Delete locally
         if (!fromNet) {
-            await Transports.p_delete(this.tablepublicurls, name, {verbose});    // and remotely.
+            await DwebTransports.p_delete(this.tablepublicurls, name, {verbose});    // and remotely.
         }
     }
     //get(name, default) cant be defined as overrides this.get()
@@ -178,10 +178,10 @@ class KeyValueTable extends PublicPrivate {
         /*
         Add a monitor for each transport - note this means if multiple transports support it, then will get duplicate events back if everyone else is notifying all of them.
         Note monitor() is synchronous, so it cant do asynchronous things like connecting to the underlying transport
-        Stack: KVT()|KVT.p_new => KVT.monitor => (a: Transports.monitor => YJS.monitor)(b: dispatchEvent)
+        Stack: KVT()|KVT.p_new => KVT.monitor => (a: DwebTransports.monitor => YJS.monitor)(b: dispatchEvent)
          */
         if (verbose) console.log("Monitoring", this.tablepublicurls);
-        Transports.monitor(this.tablepublicurls, //TODO-SW this wont work with service workers yet,
+        DwebTransports.monitor(this.tablepublicurls, //TODO-SW this wont work with service workers yet,
             (event) => {    // event of form {type, key, value} with value being an obj, so already done JSON.parse (see YJS for example)
                 if (verbose) console.log("KVT monitor",event,this.tablepublicurls);
                 switch (event.type) {
@@ -209,7 +209,7 @@ class KeyValueTable extends PublicPrivate {
             console.assert(publicobj._map["address"] === "Nowhere"); // Shouldnt be set yet
             await masterobj.p_set("address","Everywhere", verbose);
             await delay(500);
-            if (await Transports.p_urlsValidFor(masterobj.tablepublicurls, "monitor").length) {
+            if (await DwebTransports.p_urlsValidFor(masterobj.tablepublicurls, "monitor").length) {
                 console.assert(publicobj._map["address"] === "Everywhere"); // Should be set after allow time for monitor event
             } else {
                 console.log('Loaded transports dont support "monitor"');

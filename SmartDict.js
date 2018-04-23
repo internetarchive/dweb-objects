@@ -1,6 +1,6 @@
 const errors = require('./Errors');
 const utils = require('./utils'); // Utility functions
-const Transports = require('dweb-transports'); // Manage all Transports that are loaded
+// Depends on var DwebTransports being set externally - its done this way so that both direct and ServiceWorker/Proxy can be used
 
 // See CommonBlock.py for Python version
 //TODO-API merge Transportable into here, delete Block
@@ -141,7 +141,7 @@ class SmartDict {
                 return this;  // No-op if already stored, use dirty() if change after retrieved
             let data = this._getdata();
             if (verbose) console.log("SmartDict.p_store data=", data);
-            this._urls = await Transports.p_rawstore(data, {verbose});
+            this._urls = await DwebTransports.p_rawstore(data, {verbose});
             if (verbose) console.log("SmartDict.p_store urls=", this._urls);
             return this;
         } catch (err) {
@@ -352,7 +352,7 @@ class SmartDict {
 
         try {
             if (verbose) console.log("SmartDict.p_fetch", urls);
-            let data = await Transports.p_rawfetch(urls, opts);  // Fetch the data Throws TransportError immediately if url invalid, expect it to catch if Transport fails
+            let data = await DwebTransports.p_rawfetch(urls, opts);  // Fetch the data Throws TransportError immediately if url invalid, expect it to catch if Transport fails
             let maybeencrypted = utils.objectfrom(data);         // Parse JSON (dont parse if p_fetch has returned object (e.g. from KeyValueTable
             let decrypted = await this._after_fetch(maybeencrypted, urls, verbose); // AuthenticationError if can't decrypt
 

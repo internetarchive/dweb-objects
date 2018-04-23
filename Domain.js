@@ -1,5 +1,5 @@
 const errors = require('./Errors'); // Standard Dweb Errors
-const Transports = require('dweb-transports'); // Manage all Transports that are loaded
+// Depends on var DwebTransports being set externally - its done this way so that both direct and ServiceWorker/Proxy can be used
 const SmartDict = require("./SmartDict"); //for extends
 const KeyPair = require('./KeyPair'); // Encapsulate public/private key pairs and crypto libraries
 const utils = require('./utils'); // Utility functions
@@ -108,7 +108,7 @@ class Leaf extends SmartDict {
         let obj;
         try {
             if (["application/json"].includes(this.mimetype) ) {
-                let data = await Transports.p_rawfetch(this.urls, { verbose, timeoutMS: 5000});
+                let data = await DwebTransports.p_rawfetch(this.urls, { verbose, timeoutMS: 5000});
                 let datajson = (typeof data === "string" || data instanceof Buffer) ? JSON.parse(data) : data;          // Parse JSON (dont parse if p_fetch has returned object (e.g. from KeyValueTable
                 if (this.metadata["jsontype"] === "archive.org.dweb") {
                     let obj = await this._after_fetch(datajson, urls, verbose);   // Interpret as dweb - look at its "table" and possibly decrypt
@@ -226,7 +226,7 @@ class Domain extends KeyValueTable {
         }
         if (this._map[key])
             return this._map[key]; // If already have a defined result then return it (it will be from this session so reasonable to cache)
-        const rr = (await Promise.all(this.tablepublicurls.map(u => Transports.p_get([u], key, {verbose}).catch((err) => undefined))))
+        const rr = (await Promise.all(this.tablepublicurls.map(u => DwebTransports.p_get([u], key, {verbose}).catch((err) => undefined))))
             .map(r => this._mapFromStorage(r))
         // Errors in above will result in an undefined in the res array, which will be filtered out.
         // res is now an array of returned values in same order as tablepublicurls
@@ -358,7 +358,7 @@ class Domain extends KeyValueTable {
         resolves to:    [ url ]  Array of urls which will be empty if not resolved (which is quite likely if relative name not defined)
         */
         if (Array.isArray(name)) {
-            // Note can't use "this" in here, as since its passed as a callback to Transports, "this" is Transports
+            // Note can't use "this" in here, as since its passed as a callback to DwebTransports, "this" is DwebTransports
             return [].concat(...await Promise.all(name.map(u => u.startsWith("dweb:/arc") ? Domain.p_resolveNames(u, {verbose}) : [u])))
         } else {
             name = name.replace("dweb:/", ""); // Strip leading dweb:/ before resolving in root
@@ -427,7 +427,7 @@ class Domain extends KeyValueTable {
             //TODO-NAME note p_resolve is faking signature verification on FAKEFAKEFAKE - will also need to error check that which currently causes exception
             console.assert(res[0].name === "/"+name);
             if (verbose) console.log("Resolved",name,"to",await res[0].p_printable({maxindent:2}), res[1]);
-            let metadata = await Transports.p_rawfetch(res[0].urls); // Using Block as its multiurl and might not be HTTP urls
+            let metadata = await DwebTransports.p_rawfetch(res[0].urls); // Using Block as its multiurl and might not be HTTP urls
             if (verbose) console.log("Retrieved metadata",JSON.stringify(metadata));
             console.log("---Expect failure to resolve 'arc/archive.org/details/commute'");
             console.assert(metadata.metadata.identifier === itemid);
@@ -467,5 +467,5 @@ SignatureMixin.call(Domain.prototype, ["tablepublicurls", "name", "keys", "expir
 
 Domain.clsLeaf = Leaf;  // Just So exports can find it and load into Dweb TODO move to own file
 SmartDict.table2class["domain"] = Domain;
-Transports.resolveNamesWith(Domain.p_resolveNames); // Note this won't work if tried in Client to a Service Worker, must be in same thread as Transport
+DwebTransports.resolveNamesWith(Domain.p_resolveNames); // Note this won't work if tried in Client to a Service Worker, must be in same thread as Transport
 exports = module.exports = Domain;

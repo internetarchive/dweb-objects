@@ -8,7 +8,7 @@ const dom = new JSDOM(htmlfake);
 document = dom.window.document;   // Note in JS can't see "document" like can in python
 
 // Dweb constituents
-const Transports = require('dweb-transports'); // Manage all Transports that are loaded //TODO-REFACTOR mvoe to DwebTransports
+const DwebTransports = require('dweb-transports'); // Manage all Transports that are loaded //TODO-REFACTOR mvoe to DwebTransports
 const Domain = require('./Domain');
 
 /*
@@ -47,7 +47,7 @@ async function p_setup(verbose) {
         //let t_yjs = await TransportYJS.p_setup(opts, verbose);  await t_yjs.p_status(); // Should find ipfs transport
         let t_http = await TransportHTTP.p_setup(opts, verbose); await t_http.p_status();
         //let t_webtorrent = await TransportWEBTORRENT.p_test(opts, verbose); await t_webtorrent.p_status();
-        if (verbose) console.log("setup returned and transport(s) connected:", await Transports.p_connectedNames());
+        if (verbose) console.log("setup returned and transport(s) connected:", await DwebTransports.p_connectedNames());
         await Domain.p_setupOnce(verbose);
     } catch (err) {
         console.log("Test failed", err);
