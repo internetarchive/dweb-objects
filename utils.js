@@ -25,7 +25,11 @@ utils.mergeTypedArraysUnsafe = function(a, b) { // Take care of inability to con
 
 utils.objectfrom = function(data, hints={}) {
     // Generic way to turn something into a object (typically expecting a string, or a buffer)
-    return (typeof data === "string" || data instanceof Buffer) ? JSON.parse(data) : data;
+    // This can get weird, there appear to be two DIFFERENT Uint8Arrays, one has a constructor "TypedArray" the other "Uint8Array"
+    // "TypedArray" doesnt appear to be defined so can't test if its an instance of that, but in tests the TypedArray ones are
+    // not instances of Buffer and need converting first
+    if ((data instanceof Uint8Array) && !(data instanceof Buffer)) return utils.objectfrom(new Buffer(data));
+    return (typeof data === "string" || data instanceof Buffer || data instanceof Uint8Array) ? JSON.parse(data) : data;
 }
 
 utils.keyFilter = function(dic, keys) {
