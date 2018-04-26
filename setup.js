@@ -35,7 +35,7 @@ async function p_setup(verbose) {
     try {
         //SEE-OTHER-ADDTRANSPORT - note these are options just for testing that override default options for the transport.
         let opts = {
-            //http: {urlbase: "http://localhost:4244"},   // Localhost - comment out if want to use gateway.dweb.me (default args use this) //TODO-BOOTSTRAP
+            //http: {urlbase: "http://localhost:4244"},   // Localhost - comment out if want to use gateway.dweb.me (default args use this)
             yarray: {db: {name: "leveldb", dir: "../leveldb_dweb", connector: {}}},  // cleanStart: true  clears db so dont use that
             webtorrent: {}
         }; // Note browser requires indexeddb

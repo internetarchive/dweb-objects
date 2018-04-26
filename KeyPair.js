@@ -2,7 +2,8 @@ const errors = require('./Errors');
 const sodium = require("libsodium-wrappers");
 const SmartDict = require("./SmartDict");
 const utils = require('./utils'); // Utility functions
-const crypto = require('crypto'); // Needed to do a simple sha256 which doesnt appear to be in libsodium
+//const crypto = require('crypto'); // Needed to do a simple sha256 which doesnt appear to be in libsodium
+const shajs = require('sha.js');
 //Buffer seems to be built in, require('Buffer') actually breaks things
 const multihashes = require('multihashes');
 
@@ -423,7 +424,9 @@ class KeyPair extends SmartDict {
         returns:    32 byte Uint8Array with SHA256 hash
         */
         let b2 = (data instanceof Buffer) ? data : new Buffer(data);
-        return crypto.createHash('sha256').update(b2).digest();   // Note this is the only dependence on crypto and exists only because IPFS makes it ridiculously hard to get the hash synchronously without storing
+        // See browser built in exampel at https://developer.mozilla.org/en-US/docs/Web/API/SubtleCrypto/digest
+        return shajs('sha256').update(b2).digest(); // Note this exists only because IPFS makes it ridiculously hard to get the hash synchronously
+        //return crypto.createHash('sha256').update(b2).digest(); // Note this was the only dependence on crypto which is now deprecated
         //Not sure if this is Buffer or string
     }
 

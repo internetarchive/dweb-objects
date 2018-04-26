@@ -12,10 +12,10 @@
   },
   "dependencies": {
     "dweb-transports": "git+https://git@github.com/internetarchive/dweb-transports.git",
-    "crypto": "latest",
     "custom-event": "latest",
     "libsodium-wrappers": "git+https://git@github.com/mitra42/libsodium.js.git",
-    "multihashes": "latest"
+    "multihashes": "latest",
+    "sha.js": "latest"
   },
   "description": "Internet Archive Decentralized Web Transports Library",
   "devDependencies": {

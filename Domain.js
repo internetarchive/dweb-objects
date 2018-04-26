@@ -311,7 +311,7 @@ class Domain extends KeyValueTable {
     }
     static async p_setupOnce({verbose=false} = {}) {
         //const metadatagateway = 'http://localhost:4244/leaf/archiveid';
-        const metadataGateway = 'https://gateway.dweb.me/leaf/archiveid'; //TODO-BOOTSTRAP need to run this against main gateway
+        const metadataGateway = 'https://gateway.dweb.me/leaf/archiveid';
         //TODO-NAMING change passphrases to something secret, figure out what need to change
         const pass1 = "all knowledge for all time to everyone for free"; // TODO-NAMING make something secret
         const pass2 = "Replace this with something secret"; // Base for other keys during testing - TODO-NAMING replace with keygen: true so noone knows private key
