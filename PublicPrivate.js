@@ -19,20 +19,11 @@ class PublicPrivate extends SmartDict {
     dontstoremaster true if should not store master key
     _listeners      Any event listeners  //TODO-LISTENER - maybe move to SmartDict as generically useful
 
-    CL.p_store, KVP.p_store, _p_storepublic, _getdata and preflight work closely together as summarised below.
-    CL.p_store:  this._p_storepublic; SmartDict.p_store
-    KVP.p_store: SmartDict.p_store
-    _p_storepublic: constructor(preflight, false) -> p_store -> set _publicurls
-    SmartDict.p_store: this._getdata -> DwebTransports.p_rawstore
-        SD._getdata: build dd -> preflight -> JSON.stringify
-            SD.preflight: filter out _*
-            <class>.preflight: other filters
-    Most subclassing is done either at preflight to filter specific fields, or at p_store if dont have separate public/private versions.
-
-
+    See API.md for how p_store _getdata, preflight, and encryption work together to store
+    See API.md for how p_fetch, p_decrypt, _setdata, _setproperties, __setattr__ work together to retrieve
     */
 
-    constructor(data, master, key, verbose, options) {
+    constructor(data, master, key, verbose, options) { //TODO-CONSTRUCTOR check this constructor compatible with SmartDict.p_fetch and probably revise
         /*
             Create a new instance of CommonList
             Note that in almost all cases should use p_new rather than constructor as constructor cant setup listurls and listpublicurls
@@ -77,7 +68,7 @@ class PublicPrivate extends SmartDict {
     __setattr__(name, value) {
         /*
         Set a field of the object, this provides the equivalent of Python setters and getters.
-        Call chain is ...  or constructor > _setdata > _setproperties > __setattr__
+        See API.md for how fits into calling sequence
         Subclasses SmartDict
 
         Default passes "keypair" to _setkeypair
@@ -95,14 +86,14 @@ class PublicPrivate extends SmartDict {
     _setkeypair(value, verbose) {
         /*
         Set the keypair attribute, converts value into KeyPair if not already
-        Call chain is ...  or constructor > _setdata > _setproperties > __setattr__ > _setkeypair
+        See API.md for how fits into calling sequence
         Sets _master if value has a private key (note that is overridden in the constructor)
 
         :param value: KeyPair, or Dict like _key field of KeyPair
          */
         if (value && !(value instanceof KeyPair)) {
             if (value["table"]) {
-                value = SmartDict._sync_after_fetch(value, [], verbose)
+                value = SmartDict._sync_after_fetch(value, [], verbose) // Its not clear how this is used
             } else {
                 value = new KeyPair({key: value}, verbose) // Note ignoring keytype for now
             }

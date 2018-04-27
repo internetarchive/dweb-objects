@@ -54,7 +54,11 @@ class SmartDict {
         }
     }
 
-    stored() {  // Check if stored (Note overridden in KeyValue to use a _dirty flag)
+    stored() {
+        /*
+        Check if stored (Note overridden in KeyValue to use a _dirty flag)
+        returns True if data has been stored
+         */
         return !!(this._urls && this._urls.length);
     }
 
@@ -246,7 +250,7 @@ class SmartDict {
         let fieldtypes = { _acl: "obj", _urls: "urlarray", table: "str", name: "str" } // Note Name is not an explicit field, but is normally set
         return fieldtypes[propname];
     }
-    p_objbrowser(el, {maxdepth=2, verbose=false}={}) {
+    p_objbrowser(el, {maxdepth=2, verbose=false}={}) {  //TODO this is marked async, but looks sync to me ... maybe subclasses are async
         //TODO-OBJBROWSER empty values & condition on option
         if (typeof el === 'string') { el = document.getElementById(el); }
         for (let propname in this) {

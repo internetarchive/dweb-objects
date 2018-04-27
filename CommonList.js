@@ -17,6 +17,7 @@ class CommonList extends PublicPrivate {
     listurls       Urls of lists e.g. in YJS or Orbit - this is the private URL, needed for writing and never (unintentionally) stored unencrypted
     listpublicurls Public URL of list, this is the publicurl, used for reading
     Inherited from PublicPrivate: keypair, _master, _publicurls, _allowunsafestore, dontstoremaster, _listeners
+    inherits from SmartDict: _acl, _urls, _data
     */
     //TODO extend to cover array functions, but carefully as the semantics require signing and storing.
     //concat - hard to do well as unclear semantics, do you really want a new list with the contents of both ? The signatures on 2nd might not work
@@ -25,7 +26,7 @@ class CommonList extends PublicPrivate {
     //push - see p_push
     //map - can do, but sig or data ?  Maybe mapSig and mapData
 
-    constructor(data, master, key, verbose, options) {
+    constructor(data, master, key, verbose, options) { //TODO-CONSTRUCTOR - may change to match SmartDict
         /*
             Create a new instance of CommonList
             Note that in almost all cases should use p_new rather than constructor as constructor cant setup listurls and listpublicurls
@@ -59,11 +60,10 @@ class CommonList extends PublicPrivate {
 
     preflight(dd) {
         /*
-        p_store, p_storepublic and preflight work in tandem to store private and public versions of the data
+        See API.md for how this works with other functions.
         Prepare a dictionary of data for storage,
-        Subclasses SmartDict to:
-            convert the keypair for export and check not unintentionally exporting a unencrypted public key
-            ensure that _publicurls is stored (by default it would be removed)
+        Subclasses PublicPrivate to:
+            ensure that listurls not stored if !master
         and subclassed by AccessControlList
 
         :param dd: dict of attributes of this, possibly changed by superclass

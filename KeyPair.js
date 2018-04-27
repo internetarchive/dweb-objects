@@ -30,7 +30,7 @@ class KeyPair extends SmartDict {
         /*
         Create a new KeyPair
 
-        :param data: or data to initialize with (see Fields above)
+        :param data: Data to initialize with (see Fields above)
          */
         super(data, verbose);    // SmartDict takes data=json or dict
         if (!this._publicurls) this._publicurls = [];   // Initialize to empty array if not restored with data (which will happen if its master that was previously stored)
@@ -100,10 +100,17 @@ class KeyPair extends SmartDict {
     }
 
     storedpublic() {
+        /*
+        Check if the public version of this object has been stored (i.e. public keys etc)
+        returns:   true if the public version is stored (i.e. _publicurls is set)
+         */
         return this._publicurls.length || ! KeyPair._key_has_private(this._key)
     }
 
     async p_store(verbose) {
+        /*
+        Store public and private versions of this object if not already stored
+         */
         if (super.stored())
             return; // Already stored
         if (!this.storedpublic()) { // Haven't stored a public version yet
@@ -113,7 +120,9 @@ class KeyPair extends SmartDict {
     }
 
     async _p_storepublic(verbose) {
-        // Build a copy of the data, then create a new !master version
+        /*
+         Store a public version of the data.
+          */
         let oo = Object.assign({}, this); // Copy obj
         delete oo._key;
         delete oo._acl; // Dont secure public key
@@ -198,7 +207,7 @@ class KeyPair extends SmartDict {
     }
 
     signingexport() {
-        /* Usefull to be able to export the signing key */
+        /* Useful to be able to export the signing key */
         return "NACL VERIFY:"+sodium.to_urlsafebase64(this._key.sign.publicKey)
     }
     publicexport() {    // TODO-BACKPORT probably change this on Python version as well
@@ -397,27 +406,6 @@ class KeyPair extends SmartDict {
         }
     };
 
-    static test(verbose) {
-        // First test some of the lower level libsodium functionality - create key etc
-        if (verbose) console.log("KeyPair.test starting");
-        let qbf="The quick brown fox ran over the lazy duck";
-        let key = sodium.randombytes_buf(sodium.crypto_shorthash_KEYBYTES);
-        let shash_u64 = sodium.crypto_shorthash('test', key, 'urlsafebase64'); // urlsafebase64 is support added by mitra
-        key = null;
-        let hash_hex = sodium.crypto_generichash(32, qbf, key, 'hex'); // Try this with null as the key
-        let hash_64 = sodium.crypto_generichash(32, qbf, key, 'base64'); // Try this with null as the key
-        let hash_u64 = sodium.crypto_generichash(32, qbf, key, 'urlsafebase64'); // Try this with null as the key
-        if (verbose) { console.log("hash_hex = ",shash_u64, hash_hex, hash_64, hash_u64); }
-        if (hash_u64 !== "YOanaCqfg3UsKoqlNmVG7SFwLgDyB3aToEmLCH-vOzs=") { console.log("ERR Bad blake2 hash"); }
-        let signingkey = sodium.crypto_sign_keypair();
-        if (verbose) { console.log("test: SigningKey=", signingkey); }
-        let seedstr = "01234567890123456789012345678901";
-        let seed = sodium.from_string(seedstr);
-        let boxkey = sodium.crypto_box_seed_keypair(seed);
-        //FAILS - No round trip yet: if (verbose) { console.log("XXX@57 to_string=",sodium.to_string(boxkey.privateKey)); }
-        //TODO-BACKPORT get better test from Python.test_client.test_keypair
-    };
-
     static sha256(data) {
         /*
         data:       String or Buffer containing string of arbitrary length
@@ -442,6 +430,27 @@ class KeyPair extends SmartDict {
         return fieldtypes[propname] || super.objbrowser_fields(propname);
     }
 
+
+    static test(verbose) {
+        // First test some of the lower level libsodium functionality - create key etc
+        if (verbose) console.log("KeyPair.test starting");
+        let qbf="The quick brown fox ran over the lazy duck";
+        let key = sodium.randombytes_buf(sodium.crypto_shorthash_KEYBYTES);
+        let shash_u64 = sodium.crypto_shorthash('test', key, 'urlsafebase64'); // urlsafebase64 is support added by mitra
+        key = null;
+        let hash_hex = sodium.crypto_generichash(32, qbf, key, 'hex'); // Try this with null as the key
+        let hash_64 = sodium.crypto_generichash(32, qbf, key, 'base64'); // Try this with null as the key
+        let hash_u64 = sodium.crypto_generichash(32, qbf, key, 'urlsafebase64'); // Try this with null as the key
+        if (verbose) { console.log("hash_hex = ",shash_u64, hash_hex, hash_64, hash_u64); }
+        if (hash_u64 !== "YOanaCqfg3UsKoqlNmVG7SFwLgDyB3aToEmLCH-vOzs=") { console.log("ERR Bad blake2 hash"); }
+        let signingkey = sodium.crypto_sign_keypair();
+        if (verbose) { console.log("test: SigningKey=", signingkey); }
+        let seedstr = "01234567890123456789012345678901";
+        let seed = sodium.from_string(seedstr);
+        let boxkey = sodium.crypto_box_seed_keypair(seed);
+        //FAILS - No round trip yet: if (verbose) { console.log("XXX@57 to_string=",sodium.to_string(boxkey.privateKey)); }
+        //TODO-BACKPORT get better test from Python.test_client.test_keypair
+    };
 }
 
 KeyPair.KEYTYPESIGN = 1;            // Want a signing key

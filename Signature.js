@@ -18,16 +18,17 @@ class Signature extends SmartDict {
         /*
         Create a new instance of Signature
 
-        :param data: data to initialize - see Fields above
+        :param dic: data to initialize - see Fields above
          */
         super(dic, verbose);
-        //TODO-DATE turn s.date into javascript date
-        //if isinstance(s.date, basestring):
-        //    s.date = dateutil.parser.parse(s.date)
         this.table = "sig";
     }
 
     __setattr__(name, value) {
+        /*
+        Overrides SmartDict.__setattr__
+        name:   If "date" then convert value from string to javascript Date
+        */
         if (name === "date" && typeof value === 'string') {
             value = new Date(value);    // Convert from presumably ISOString (note JSON.stringify does an ISOString in Javascript)
         }
@@ -77,7 +78,7 @@ class Signature extends SmartDict {
         Utility function to allow filtering out of duplicates
 
         :param arr: Array of Signature
-        :returns: Array of Signature containing only the first occurring instance of a signature (note first in array, not necessarily first by date)
+        :returns: Array of Signature containing only the first occurring instance of each signature (note first in array, not necessarily first by date)
          */
         let res = {};
         // Remove duplicate signatures

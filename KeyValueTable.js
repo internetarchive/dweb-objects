@@ -21,11 +21,9 @@ class KeyValueTable extends PublicPrivate {
     a) Create new object via p_new, store it the setart setting
     b) Retrieve object via SmartDict - want to start monitor after get, and start set
 
-    Comments on functions in subclasses.
-    p_store - default in PublicPrivate will store public and private versions, which isnt what we want so override here.
      */
 
-    constructor(data, master, key, verbose, options) {
+    constructor(data, master, key, verbose, options) { #TODO-CONSTRUCTOR
         super(data, master, key, verbose, options);
         this.table = "keyvaluetable"; // Superclasses may override
         if (typeof this._autoset === "undefined") {
@@ -165,10 +163,10 @@ class KeyValueTable extends PublicPrivate {
         return this._map;
     }
 
-    async p_delete(name, {fromNet=false, verbose=false}={}) {
-        delete this._map[name]; // Delete locally
+    async p_delete(key, {fromNet=false, verbose=false}={}) {
+        delete this._map[key]; // Delete locally
         if (!fromNet) {
-            await DwebTransports.p_delete(this.tablepublicurls, name, {verbose});    // and remotely.
+            await DwebTransports.p_delete(this.tablepublicurls, key, {verbose});    // and remotely.
         }
     }
     //get(name, default) cant be defined as overrides this.get()
