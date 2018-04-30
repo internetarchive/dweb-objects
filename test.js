@@ -6,7 +6,7 @@ htmlfake = '<!DOCTYPE html></html>';
 const dom = new JSDOM(htmlfake);
 document = dom.window.document;   // Note in JS can't see "document" like can in python
 
-const DwebTransports = require('dweb-transports'); // Manage all Transports that are loaded //TODO-REFACTOR mvoe to DwebTransports
+global.DwebTransports = require('dweb-transports'); // Manage all Transports that are loaded
 //SEE-OTHER-ADDTRANSPORT
 // Higher level object classes
 const SmartDict = require('./SmartDict');

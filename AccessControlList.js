@@ -21,11 +21,11 @@ class AccessControlList extends CommonList {
 
     */
 
-    constructor(data, master, key, verbose, options) {
+    constructor(data, verbose, options) {
         /*
         Create a new AccessControlList - see CommonList for parameters
          */
-        super(data, master, key, verbose, options);
+        super(data, verbose, options);
         if (this._master && !this.accesskey) {
             this.accesskey = KeyPair.b64enc(KeyPair.randomkey());
         }

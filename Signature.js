@@ -63,7 +63,7 @@ class Signature extends SmartDict {
         if (!commonlist.stored()) {
             await commonlist.p_store(verbose);
         }
-        let sig = new Signature({"date": date, "urls": urls, "signedby": commonlist._publicurls});
+        let sig = new Signature({"date": date, "urls": urls, "signedby": commonlist._publicurls}, verbose);
         sig.signature = commonlist.keypair.sign(sig.signable());
         //console.assert(sig.verify(commonlist, verbose)) //uncomment for testing
         return sig

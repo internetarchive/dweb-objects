@@ -16,12 +16,12 @@ class VersionList extends CommonList {
     _list:      List of versions, last on list should be the current version
      */
 
-    constructor(data, master, key, verbose, options) {
+    constructor(data, verbose, options) {
         /*
         :param data: Data to initialize to - usually {name, contentacl, _acl}
         :param master: true if should be master (false when loaded from Dweb)
          */
-        super(data, master, key, verbose, options);
+        super(data, verbose, options);
         this.table = "vl";
     }
 

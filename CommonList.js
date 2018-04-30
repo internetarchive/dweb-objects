@@ -26,21 +26,15 @@ class CommonList extends PublicPrivate {
     //push - see p_push
     //map - can do, but sig or data ?  Maybe mapSig and mapData
 
-    constructor(data, master, key, verbose, options) { //TODO-CONSTRUCTOR - may change to match SmartDict
+    constructor(data, verbose, options) {
         /*
             Create a new instance of CommonList
             Note that in almost all cases should use p_new rather than constructor as constructor cant setup listurls and listpublicurls
             Also note that when called from SmartDict.p_fetch ONLY the data is passed.
 
-            :param data: json string or dict to load fields from
-            :param master: boolean, true if should create a master list with private key etc
-            :param key: A KeyPair, or a dict of options for creating a key: valid = mnemonic, seed, keygen:true
-                keygen: boolean, true means it should generate a key
-                mnemonic: BIP39 string to use as a mnemonic to generate the key - TODO not implemented (in JS) yet
-                seed: Seed to key generation algorithm
             :param options: dict that overrides any fields of data
          */
-        super(data, master, key, verbose, options);
+        super(data, verbose, options);
         this.listurls = this.listurls || [];
         this.listpublicurls = this.listpublicurls || [];
         this.table = "cl";

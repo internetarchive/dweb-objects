@@ -152,8 +152,8 @@ class Domain extends KeyValueTable {
     tablepublicurls: [ str* ]       Where to find the table.
     _map:   KeyValueTable   Mapping of name strings beneath this Domain
     */
-    constructor(data, master, key, verbose, options) {
-        super(data, master, key, verbose, options); // Initializes _map if not already set
+    constructor(data, verbose, options) {
+        super(data, verbose, options); // Initializes _map if not already set
         this.table = "domain"; // Superclasses may override
         this.nameConstructor();  // from the Mixin, initializes signatures
         this.signatureConstructor();
@@ -396,7 +396,7 @@ class Domain extends KeyValueTable {
             await Domain.root.p_register("testingtoplevel", testingtoplevel, verbose);
             const adomain = await Domain.p_new({_acl: kc}, true, {passphrase: pass+"/testingtoplevel/adomain"});
             await testingtoplevel.p_register("adomain", adomain, verbose);
-            const item1 = await new SmartDict({"name": "My name", "birthdate": "2001-01-01"}).p_store();
+            const item1 = await new SmartDict({"name": "My name", "birthdate": "2001-01-01"}, verbose).p_store();
             await adomain.p_register("item1", item1, verbose);
             // Now try resolving on a client - i.e. without the Domain.root privte keys
             const ClientDomainRoot = await SmartDict.p_fetch(Domain.root._publicurls, verbose);

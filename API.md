@@ -554,13 +554,10 @@ dontstoremaster true if should not store master key
 _listeners      Any event listeners  //TODO-LISTENER - maybe move to SmartDict as generically useful
 ```
 
-##### new PublicPrivate (data, master, key, verbose, options)   TODO-constructor signature will probably change for compatability with SmartDict
+##### new PublicPrivate (data, verbose, options)
 Create a new instance of CommonList (but see p_new)
 ```
 data:     json string or dict to load fields from
-master:   boolean, true if should create a master list with private key etc
-key:      KeyPair or { seed: 32bytestring} or {mnemonic: BIP39 string} or {keygen: true}
-          (Note BIP39 not yet implemented)
 options:  dict that overrides any fields of data
 ```
 
@@ -671,7 +668,7 @@ Inherits from PublicPrivate: keypair, _master, _publicurls, _allowunsafestore, d
 inherits from SmartDict: _acl, _urls, _data
 ```
 
-##### static async p_new CommonList (data, master, key, verbose, options) TODO-CONSTRUCTOR - may change to match SmartDict
+##### static async p_new CommonList (data, verbose, options)
 Create a new instance of CommonList (but see p_new) - see PublicPrivate.new for documentation
 Note that in almost all cases should use p_new rather than constructor as constructor cant setup listurls and listpublicurls
 
@@ -734,7 +731,7 @@ Two ordering use cases
 * Create new object via p_new, store it via the _autoset setting
 * Retrieve object via SmartDict - want to start monitor after get, and start set
 
-##### new KeyValueTable (data, master, key, verbose, options) (TODO-CONSTRUCTOR signature may change)
+##### new KeyValueTable (data, verbose, options)
 Create a new instance of KeyValueTable (but see p_new) - see PublicPrivate.p_new for documentation
 ```
 data: {_autoset}  if _autoset is undefined then will be set if master && tableplublicurls is set
@@ -826,7 +823,7 @@ _list: Contains a list of signatures, each for a SmartDict each of which is:
 Inherits from PublicPrivate: _master, _publicurls, _allowunsafestore, dontstoremaster, _listerners; and from CommonList: _list, and from SmartDict: _acl and from Transportable: _data, _urls
 
 
-new AccessControlList(data, master, key, verbose, options)
+new AccessControlList(data, verbose, options)
 Create a new AccessControlList - see PublicPrivate for parameters, but should use p_new
 
 
@@ -900,7 +897,7 @@ KeyChain extends CommonList to store a users keys, MutableBlocks and AccessContr
 Fields:
 _keys:  Array of keys (the signed objects on the list)
 
-new KeyChain (data, master, key, verbose)
+new KeyChain (data, verbose, options)
 Create a new KeyChain, for parameters see CommonList or Publicprivate
 
 static p_new (data, key, verbose) 
@@ -965,7 +962,7 @@ _working:   Version currently working on
 Inherited Fields worth commenting on:
 _acl:       Set to prevent access to the VersionList itself
 _list:      List of versions, last on list should be the current version
-new VersionList (data, master, key, verbose, options)
+new VersionList (data, verbose, options)
 data:        Data to initialize to - usually {name, contentacl, _acl}
 master:        True if should be master (false when loaded from Dweb)       
 

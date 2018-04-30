@@ -26,13 +26,13 @@ class KeyPair extends SmartDict {
     }
      */
 
-    constructor(data, verbose) {
+    constructor(data, verbose, options) {
         /*
         Create a new KeyPair
 
         :param data: Data to initialize with (see Fields above)
          */
-        super(data, verbose);    // SmartDict takes data=json or dict
+        super(data, verbose, options);    // SmartDict takes data=json or dict
         if (!this._publicurls) this._publicurls = [];   // Initialize to empty array if not restored with data (which will happen if its master that was previously stored)
         this.table = "kp";
     }
@@ -121,13 +121,16 @@ class KeyPair extends SmartDict {
 
     async _p_storepublic(verbose) {
         /*
-         Store a public version of the data.
+        // Store public version, dont encrypt on storing as want public part to be publicly visible
           */
         let oo = Object.assign({}, this); // Copy obj
         delete oo._key;
         delete oo._acl; // Dont secure public key
         oo.key = this.publicexport();    //Copy key except for use public version instead of private
         let ee = new this.constructor(oo, verbose);
+        //TODO change to use the getdata pattern from other classes instead of "new"
+        // This will require preflight being changed to notice that _master has been set to false if publicOnly=true (_getdata will delete _acl)
+        // this._publicurls = await DwebTransports.p_rawstore( this._getdata({publicOnly: true, encryptIfAcl:false}), {verbose});
         await ee.p_store(verbose);
         this._publicurls = ee._urls;
     }

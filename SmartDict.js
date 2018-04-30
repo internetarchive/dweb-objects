@@ -309,7 +309,7 @@ class SmartDict {
         if (urls.length) {
             retrievedobj._urls = urls;                         // Save where we got it - preempts a store - must do this after decrypt and before constructor as e.g KVT sets monitor if _urls is set
         }
-        return new cls(retrievedobj);
+        return new cls(retrievedobj, verbose);
         // Returns new object that should be a subclass of SmartDict
 
     }
@@ -333,7 +333,7 @@ class SmartDict {
         if (urls.length) {
             decrypted._urls = urls;                         // Save where we got it - preempts a store - must do this after decrypt and before constructor as e.g KVT sets monitor if _urls is set
         }
-        return new cls(decrypted);
+        return new cls(decrypted, verbose);
         // Returns new object that should be a subclass of SmartDict
     }
     static async p_fetch(urls, verboseOrOpts) {

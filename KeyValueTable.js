@@ -23,8 +23,8 @@ class KeyValueTable extends PublicPrivate {
 
      */
 
-    constructor(data, master, key, verbose, options) { #TODO-CONSTRUCTOR
-        super(data, master, key, verbose, options);
+    constructor(data, verbose, options) {
+        super(data, verbose, options);
         this.table = "keyvaluetable"; // Superclasses may override
         if (typeof this._autoset === "undefined") {
             // If we haven't explicitly set _autoset then set if it looks like we are a master with a table to connect to.

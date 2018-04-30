@@ -15,11 +15,11 @@ class KeyChain extends CommonList {
     _keys:  Array of keys (the signed objects on the list)
      */
 
-    constructor(data, master, key, verbose) {
+    constructor(data, verbose, options) {
         /*
         Create a new KeyChain, for parameters see CommonList
          */
-        super(data, master, key, verbose);
+        super(data, verbose, options);
         if (!this._keys) this._keys = []; // Could be overridden by data in super
         this.table = "kc";
     }

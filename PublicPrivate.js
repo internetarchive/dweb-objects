@@ -23,26 +23,19 @@ class PublicPrivate extends SmartDict {
     See API.md for how p_fetch, p_decrypt, _setdata, _setproperties, __setattr__ work together to retrieve
     */
 
-    constructor(data, master, key, verbose, options) { //TODO-CONSTRUCTOR check this constructor compatible with SmartDict.p_fetch and probably revise
+    constructor(data, verbose, options) {
         /*
             Create a new instance of CommonList
             Note that in almost all cases should use p_new rather than constructor as constructor cant setup listurls and listpublicurls
             Also note that when called from SmartDict.p_fetch ONLY the data is passed.
 
-            :param data: json string or dict to load fields from
-            :param master: boolean, true if should create a master list with private key etc
-            :param key: A KeyPair, or a dict of options for creating a key: valid = mnemonic, seed, keygen:true
-                keygen: boolean, true means it should generate a key
-                mnemonic: BIP39 string to use as a mnemonic to generate the key - TODO not implemented (in JS) yet
-                seed: Seed to key generation algorithm
-            :param options: dict that overrides any fields of data
+            data        dict of fields
+            options     dict that overrides any fields of data
          */
         super(data, verbose, options);
         this._listeners = {};
-        if (key) {
-            this._setkeypair(key, verbose);
-        }
-        this._master = (typeof master === "undefined") ? (this.keypair && this.keypair.has_private()) : master;  // Note this must be AFTER _setkeypair since that sets based on keypair found and _p_storepublic for example wants to force !master
+        if (typeof this._master === "undefined")
+            this._master = this.keypair && this.keypair.has_private()  // Note this must be AFTER _setkeypair since that sets based on keypair found and _p_storepublic for example wants to force !master
         if (!this._master && (!this._publicurls || !this._publicurls.length)) {
             this._publicurls = this._urls;  // We aren't master, so publicurl is same as url - note URL will only have been set if constructor called from SmartDict.p_fetch
         } else {
@@ -51,8 +44,14 @@ class PublicPrivate extends SmartDict {
         this.table = "pp";
     }
 
-    static async p_new(data, master, key, verbose, options) {
-        return new this(data, master, key, verbose, options); // Note will call superclass if called from there.
+    static async p_new(data, master, keypair, verbose, options) {
+        if (!options)
+            options = {};
+        if (typeof master !== undefined)    // Set master if its defined, true or false, but not if its undefined
+            options._master = master;
+        if (typeof keypair !== "undefined")
+            options.keypair = keypair;
+        return new this(data, verbose, options); // Note will call superclass if called from there.
     }
 
     keytype() {
