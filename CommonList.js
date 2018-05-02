@@ -17,7 +17,7 @@ class CommonList extends PublicPrivate {
     listurls       Urls of lists e.g. in YJS or Orbit - this is the private URL, needed for writing and never (unintentionally) stored unencrypted
     listpublicurls Public URL of list, this is the publicurl, used for reading
     Inherited from PublicPrivate: keypair, _master, _publicurls, _allowunsafestore, dontstoremaster, _listeners
-    inherits from SmartDict: _acl, _urls, _data
+    inherits from SmartDict: _acl, _urls
     */
     //TODO extend to cover array functions, but carefully as the semantics require signing and storing.
     //concat - hard to do well as unclear semantics, do you really want a new list with the contents of both ? The signatures on 2nd might not work

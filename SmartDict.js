@@ -20,7 +20,6 @@ class SmartDict {
     Fields:
     _acl    if set (on master) to a AccessControlList or KeyChain, defines storage as encrypted -
     _urls   Array of URLs of data stored
-    _data   Data (if its opaque)
     table   Name of class as looked up in DwebObjects.table2class
      */
 
@@ -40,7 +39,7 @@ class SmartDict {
 
 
     __setattr__(name, value) { // Call chain is ... success or constructor > _setdata > _setproperties > __setattr__
-        // Subclass this to catch any field (other than _data) which has its own setter
+        // Subclass this to catch any field which has its own setter
         //Note how Signature transforms date to a string
         this[name] = value;
     }
@@ -118,7 +117,7 @@ class SmartDict {
             res = JSON.stringify(dic);
         }
         return res
-    }    // Should be being called on outgoing _data includes dumps and encoding etc
+    }
 
     _setdata(value) {
         /*
@@ -131,7 +130,7 @@ class SmartDict {
         value = typeof(value) === "string" ? JSON.parse(value) : value; // If its a string, interpret as JSON
         if (value && value.encrypted)
             throw new errors.EncryptionError("Should have been decrypted in p_fetch");
-        this._setproperties(value); // Note value should not contain a "_data" field, so wont recurse even if catch "_data" at __setattr__()
+        this._setproperties(value);
     }
 
     async p_store(verbose) {

@@ -18,7 +18,7 @@ const SignatureMixin = function(fieldlist) {
             date,                   ISODate when signed
             signature,              Signature (see KeyPair)
             signedby,               Exported Public Key of Signer (see KeyPair)
-            }]                      Each signature is of JSON.stringify({date, domains, name, keys, urls|tablepublicurls, expires})
+            }]                      Each signature is of JSON.stringify({date, signed} where signed is fields from fieldlist
      */
     this.fieldlist = fieldlist;
 
@@ -29,6 +29,9 @@ const SignatureMixin = function(fieldlist) {
         return JSON.stringify({"date": date, signed: utils.keyFilter(this, this.__proto__.fieldlist)});
     };
     this._signSelf = function(keypair) { // Pair of verify
+        /*
+        Add a signature for the fieldlist to signatures
+         */
         const date = new Date(Date.now());
         this.signatures.push({date,
             signature: keypair.sign(  this._signable(date)),
@@ -105,6 +108,9 @@ class Leaf extends SmartDict {
         return `${indent.repeat(indentlevel)}${this.name} = ${this.urls.join(', ')}${this.expires ? " expires:"+this.expires : ""}\n`
     }
     async p_resolve(path, {verbose=false}={}) {
+        /*
+        Sees it it can resolve the path in the Leaf further, because we know the type of object (e.g. can return subfield of some JSON)
+         */
         let obj;
         try {
             if (["application/json"].includes(this.mimetype) ) {
@@ -162,6 +168,10 @@ class Domain extends KeyValueTable {
         }
     }
     static async p_new(data, master, key, verbose, seedurls, kids) {
+        /*
+        seedurls:   Urls that can be used in addition to any auto-generatd ones
+        kids:       dict Initial subdomains or leafs { subdomain: Leaf or Domain }
+         */
         const obj = await super.p_new(data, master, key, verbose, {keyvaluetable: "domain", seedurls: seedurls}); // Will default to call constructor and p_store if master
         if (obj.keychain) {
             await obj.keychain.p_push(obj, verbose);

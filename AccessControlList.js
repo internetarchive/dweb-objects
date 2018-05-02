@@ -13,11 +13,13 @@ class AccessControlList extends CommonList {
 
     Fields:
     accesskey:  Secret key with which things are encrypted. We are controlling who gets this.
-    publickey:
+    publickey:  Export of public key
     _list: Contains a list of signatures, each for a SmartDict each of which is:
         viewer: public URLs of the KeyPair of an authorised viewer
         token:  accesskey encrypted with PublicKey from the KeyPair
         name:   Name of this token
+    Inherits from PublicPrivate: _master, _publicurls, _allowunsafestore, dontstoremaster, _listerners; and from CommonList: _list, and from SmartDict: _acl. _urls
+
 
     */
 
@@ -96,7 +98,7 @@ class AccessControlList extends CommonList {
         }
     }
 
-    p_tokens(verbose) { //TODO-BACKPORT
+    async p_tokens(verbose) { //TODO-BACKPORT
         /*
         Return the list of tokens on this ACL. Side effect of loading data on each Signature in this._list
         resolves to: [ SmartDict{token:, viewer:, name: }, ... ]

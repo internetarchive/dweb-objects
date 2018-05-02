@@ -7,13 +7,17 @@ utils = {}; //utility functions
 
 // Utility function to print a array of items but just show number and last.
 utils.consolearr  = (arr) => ((arr && arr.length >0) ? [arr.length+" items inc:", arr[arr.length-1]] : arr );
-//Return true if two shortish arrays a and b intersect or if b is not an array, then if b is in a
-// If a is undefined then result is false
-//Note there are better solutions exist for longer arrays
-//This is intended for comparing two sets of probably equal, but possibly just intersecting URLs
-utils.intersects = (a,b) =>  a ? (Array.isArray(b) ? a.some(x => b.includes(x)) : a.includes(b)) : false ;
 
-// Utility functions
+/*
+Quick intersection for short arrays. Note there are better solutions exist for longer arrays
+This is intended for comparing two sets of probably equal, but possibly just intersecting URLs
+
+a, b    (shortish) arrays
+Returns true if two shortish arrays a and b intersect
+    or if b is not an array, then if b is in a
+    If a is undefined then result is false
+ */
+utils.intersects = (a,b) =>  a ? (Array.isArray(b) ? a.some(x => b.includes(x)) : a.includes(b)) : false ;
 
 utils.mergeTypedArraysUnsafe = function(a, b) { // Take care of inability to concatenate typed arrays such as Uint8
     //http://stackoverflow.com/questions/14071463/how-can-i-merge-typedarrays-in-javascript also has a safe version

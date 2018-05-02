@@ -13,6 +13,9 @@ class KeyChain extends CommonList {
 
     Fields:
     _keys:  Array of keys (the signed objects on the list)
+    Inherits from CommonList _list (list of signatures of keys); listurls; listpublicurls;
+    from PublicPrivate: keypair, _master, _publicurls, _allowunsafestore, dontstoremaster, _listeners
+    from SmartDict: _acl, _urls
      */
 
     constructor(data, verbose, options) {

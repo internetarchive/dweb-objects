@@ -116,7 +116,6 @@ Fields|&nbsp;
 :---|---
 _acl|if set (on master) to a AccessControlList or KeyChain, defines storage as encrypted 
 _urls|Array of URLs of data stored
-_data|Data (if its opaque)
 table|"sd", subclasses each have their own `table` code
 
 ####The callchain for storing is ...
@@ -139,7 +138,9 @@ table|"sd", subclasses each have their own `table` code
 * p_fetch
     * DwebTransports.p_rawfetch - retrieve raw data
     * _after_fetch convert retrieved object into intended class, (_sync_after_fetch is alternative for non-encrypted)
-        * p_decrypt - decrypt object if required
+        * SD.p_decrypt - connect to hook registered by ACL
+            * ACL.p_decryptdata - fetch necessary ACL etc to decrypt object if required
+                * ACL.p_decrypt - decrypt object
         * subclass constructor - create object of intended class
             * _setdata convert from json and store
                 * _setproperties store on object
@@ -278,7 +279,7 @@ Theoretically, use of a different cryptolibrary should be confined to this class
 *Fields*:
 ```
 _key    Holds a structure, that may depend on cryptographic library used.
-Inherits from SmartDict: _acl; and from Transportable: _urls and _data
+Inherits from SmartDict: _acl; _urls
 ```
 
 *Constant*|Value|Meaning
@@ -481,7 +482,7 @@ date:        Date stamp (according to browser) when item signed
 urls:        Array of urls of object signed
 signature:          Signature of the date and urls
 signedby:           Public urls of list signing this (list should have a public key)
-Inherits from SmartDict: _acl, _urls and _data
+Inherits from SmartDict: _acl, _urls
 ```
 
 ##### new Signature (dic, verbose)
@@ -665,7 +666,7 @@ _publicurls     Holds an array of urls of publicly available version of the list
 listurls        List of URLs for lists 
 listpublicurls  Public version of URL for list
 Inherits from PublicPrivate: keypair, _master, _publicurls, _allowunsafestore, dontstoremaster, _listeners
-inherits from SmartDict: _acl, _urls, _data
+inherits from SmartDict: _acl, _urls
 ```
 
 ##### static async p_new CommonList (data, verbose, options)
@@ -784,6 +785,14 @@ keys:        single key or array of keys
 returns        single result or dictionary, will convert from storage format
 ```
 
+##### async p_getMerge(keys, verbose) {
+Get the value of a key, but if there are multiple tablepublicurls then check them all, and use the most recent value
+TODO - will store most recent back to stores that don't have it.
+```
+key:    Key or Array of keys.
+return: value or array of values
+```
+
 ##### async p_keys(verbose)
 ```
 returns array of all keys
@@ -805,208 +814,542 @@ Add a monitor for each transport - note this means if multiple transports suppor
 Note monitor() is synchronous, so it cannot do asynchronous things like connecting to the underlying transport
 Stack: KVT()|KVT.p_new => KVT.monitor => (a: Transports.monitor => YJS.monitor)(b: dispatchEvent)
 
+### KeyValue extends SmartDict
+TODO This is incomplete, will have a interface similar to KeyValueTable
+
 ##Authentication layer
+The Authentication Layer builds on the Lists, there is a
+[Google Doc: Dweb - Authentication](https://docs.google.com/document/d/1bdcNtfJQ04Twlbef1VZAjQYLmZgpdCFDapQBoef_CGs/edit)
+describing it. 
+TODO - convert Dweb-Authentication to .md and add to repository.
 
+In essence:
 
-See Dweb - Authentication 
-AccessControlList - a list of people who can access a set of resources.
+* An AccessControlList (ACL) is added to the `_acl` field of any SmartDict subclass
+* SmartDict.p_store encrypts such objects with a secret key (stored on the ACL)
+* The ACL has a list of people who can access the doc, 
+each item on the list is the secret key encrypted by the Public Key of the user. 
+* A user has one or more KeyChains with a list of their Private/Public KeyPairs
+* When SmartDict.p_fetch retrieves and object, it checks the logged in user's KeyChains 
+and the ACL for a matching keypair, and if found decrypts the document
+
+### AccessControlList extends CommonList - a list of people who can access a set of resources.
 
 An AccessControlList is a list for each control domain, with the entries being who has access.
 To create a list, it just requires a key pair, like any other List
 
-Fields:
+##### Fields:
+```
 accesskey:  Secret key with which things are encrypted. We are controlling who gets this.
 _list: Contains a list of signatures, each for a SmartDict each of which is:
    viewer: public URLs of the KeyPair of an authorised viewer
    token:  accesskey encrypted with PublicKey from the KeyPair
    name:   Name of this token
-Inherits from PublicPrivate: _master, _publicurls, _allowunsafestore, dontstoremaster, _listerners; and from CommonList: _list, and from SmartDict: _acl and from Transportable: _data, _urls
-
-
-new AccessControlList(data, verbose, options)
+Inherits from PublicPrivate: _master, _publicurls, _allowunsafestore, dontstoremaster, _listerners; and from CommonList: _list, and from SmartDict: _acl. _urls
+```
+##### new AccessControlList(data, verbose, options)
 Create a new AccessControlList - see PublicPrivate for parameters, but should use p_new
 
-
-static p_new (data, master, key, verbose, options, kc) 
+##### static async p_new (data, master, key, verbose, options, kc) 
 Create a new AccessControlList, store, add to keychain, adds listurls and listpublicurls
-
+```
 data,master,key,verbose,options: see new PublicPrivate
 Kc:        Optional KeyChain to add to
-
-preflight (dd)
-Prepare data for storage, ensure publickey available
-
+```
+##### preflight (dd)
+Overrides CommonList, Prepare data for storage, ensure publickey available
+```
 dd:        dict containing data preparing for storage (from subclass)
 returns        dict ready for storage if not modified by subclass
-
-p_add_acle (viewerpublicurls, data, verbose) 
+```
+##### async p_add_acle (viewerpublicurls, data, verbose) 
 Add a new ACL entry - that gives a viewer the ability to see the accesskey of this ACL
-
+```
 viewerpublicurls:        Array of urls of the viewers KeyPair object (contains a publickey)
 data:        Dict of data fields, only currently supports “name” but could theoretically add any.
 resolves to:         this for chaining
-
-p_tokens(verbose)
+```
+##### p_tokens(verbose)
 Return the list of tokens on this ACL. Side effect of loading data on each Signature in this._list
+```
 resolves to: [ SmartDict{token:, viewer:, name: }, ... ]
-_findtokens (viewerkeypair, decrypt, verbose)
+```
+##### _findtokens (viewerkeypair, decrypt, verbose)
 Find the entries, if any, in the ACL for a specific viewer
 There might be more than one if either the accesskey changed or the person was added multiple times.
 Entries are SmartDict with token being the decryptable accesskey we want
 The ACL should have been p_list_then_elements() before so that this can run synchronously.
-
+```
 viewerkeypair:        KeyPair of viewer
 decrypt:         If should decrypt the
-:return:            Array of encrypted tokens (strings) or array of uint8Array
-:throws:            CodingError if not yet fetched
-
-
-encrypt(data, b64)
+return:            Array of encrypted tokens (strings) or array of uint8Array
+throws:            CodingError if not yet fetched
+```
+##### encrypt(data, b64)
 Encrypt some data based on the accesskey of this list.
-
+```
 data:         string - data to be encrypted
 b64:         true if want result as urlbase64 string, otherwise string
 :return:         string, possibly encoded in urlsafebase64
+```
 
-
-decrypt (data,, verbose)
+##### decrypt (data,, verbose)
 Decrypt data 
-Chain is SD.p_fetch > SD.p_decryptdata > ACL|KC.decrypt, then SD.setdata
-
+```
 data:         string from json of encrypted data - b64 encrypted
 :return:        Decrypted data
 :throw:        AuthenticationError if there are no tokens for our ViewerKeyPair that can decrypt the data
+```
 
-
-static p_decryptdata(value, verbose) 
+##### static async p_decryptdata(value, verbose) 
 Takes a dict, checks if encrypted (by presence of "encrypted" field, and returns immediately if not
 Otherwise if can find the ACL's url in our keychains then decrypt with it (it will be a KeyChain, not a ACL in that case.
 Else returns a promise that resolves to the data
 No assumption is made about what is in the decrypted data
-
-Chain is SD.p_fetch > SD.p_decryptdata > ACL.p_decrypt > ACL|KC.decrypt, then SD.setdata
-
+```
 value:         object from parsing incoming JSON that may contain {acl, encrypted} acl will be url of AccessControlList or KeyChain
 :return:         data or promise that resolves to data
 :throws:         AuthenticationError if cannot decrypt
+```
 
-
-KeyChain - collection of KeyPair, ACL etc
+### KeyChain extends COmmonList - collection of KeyPair, ACL etc
 KeyChain extends CommonList to store a users keys, MutableBlocks and AccessControlLists
-
-Fields:
+#####Fields:
+```
 _keys:  Array of keys (the signed objects on the list)
+```
+#####Class Variables
+```
+eventHandler - monitor events on KeyChains (TODO document which)
+keychains - list of logged in KeyChains
+```
 
-new KeyChain (data, verbose, options)
-Create a new KeyChain, for parameters see CommonList or Publicprivate
+##### new KeyChain (data, verbose, options)
+Create a new KeyChain, for parameters see CommonList or Publicprivate.
 
-static p_new (data, key, verbose) 
+It calls any EventHandlers with cb("login", keychain)
+
+##### static async p_new (data, key, verbose) 
 Create a new KeyChain object based on a new or existing key.
 Store and add to the Dweb.keychains, list any elements already on the KeyChain (relevant for existing keys)
+```
 data, key:  See CommonList or PublicPrivate for parameters
 resolves to:    KeyChain created
+```
 
-
-p_list_then_elements(verbose)
+##### async p_list_then_elements({verbose=false, ignoreerrors=false}={})
 Subclasses CommonList to store elements in a _keys array.
+```
+ignoreerrors    If set will continue and ignore (just log) any elements it cant retriev
 resolves to:            Array of KeyPair
+```
 
-encrypt (data, b64)
+##### encrypt (data, b64)
 Encrypt an object (usually represented by the json string). Pair of .decrypt()
+```
 res: The material to encrypt, usually JSON but could probably also be opaque bytes
 b64: True if result wanted in urlsafebase64 (usually)
 :return:    Data encrypted by Public Key of this KeyChain.
+```
 
-decrypt(data, verbose)
+##### decrypt(data, verbose)
 Decrypt data with this KeyChain - pair of .encrypt()
-Chain is SD.p_fetch > SD.p_decryptdata > ACL|KC.decrypt, then SD.setdata
+```
+data: String from json, b64 encoded
+return: decrypted text as string
+throws: :throws: EnryptionError if no encrypt.privateKey, CodingError if !data
+```
 
-:param data: String from json, b64 encoded
-:return: decrypted text as string
-:throws: :throws: EnryptionError if no encrypt.privateKey, CodingError if !data
-
-
-p_store (verbose)
+##### p_store (verbose)
 Unlike other p_store this ONLY stores the public version, and sets the _publicurl, on the assumption that the private key of a KeyChain should never be stored.
 Private/master version should never be stored since the KeyChain is itself the encryption root.
-static addkeychains(keychains)
-Add keys I can use for viewing to Dweb.keychains where it will be iterated over during decryption.
-keychains:         keychain or Array of keychains
 
-static logout()
+#### KeyChains - managing the "keychains" variable
+This may be separated to its own class at some point
+
+##### static addkeychains(keychains)
+```
+keychains:         keychain or Array of keychains
+```
+##### static logout()
 Logout user - removes all of Dweb.keychains
 
-
-static default()
+##### static default()
 Find the default KeyChain for locking (currently the most recent login)
+```
 Returns:        keychain or undefined
+```
 
-
-static keychains_find (dict, verbose) 
+##### static keychains_find (dict, verbose) 
 Locate a needed KeyChain on Dweb.keychains by some filter.
-
+```
 dict:            dictionary to check against the keychain (see CommonList.match() for interpretation
 :return:                AccessControlList or KeyChain or null
+```
 
-static mykeys(clstarget)
+##### static find_in_keychains(dict, verbose)
+Locate a needed KeyChain on this.keychains by some filter.
+```
+dict:    dictionary to check against the keychain (see CommonList.match() for interpretation
+:return:        AccessControlList or KeyChain or null
+```
+
+##### static mykeys(clstarget)
 Utility function to find any keys in any of Dweb.keychains for the target class.
+```
 clstarget:          Class to search Dweb.keychains for, KeyPair, or something with a KeyPair 
         e.g. subclass of CommonList(ACL, MB)
 returns:            (possibly empty) array of KeyPair or CommonList
-Application Tools
-VersionList - manage something which has versions.
+```
+
+## Application Tools
+
+### VersionList extends CommonList - manage something which has versions.
 Extends a list to have semantics where the most recent entry is the current version, and older versions can be retrieved.
-Fields:
+
+##### Fields:
+```
 contentacl: ACL that should be used to lock content
 _working:   Version currently working on
 Inherited Fields worth commenting on:
 _acl:       Set to prevent access to the VersionList itself
 _list:      List of versions, last on list should be the current version
-new VersionList (data, verbose, options)
+```
+
+##### new VersionList (data, verbose, options)
+```
 data:        Data to initialize to - usually {name, contentacl, _acl}
-master:        True if should be master (false when loaded from Dweb)       
+master:      True if should be master (false when loaded from Dweb)       
+```
 
-
-static async p_expanddata(data, verbose)
+##### static async p_expanddata(data, verbose)
 Prior to initializing data, expand any URLs in known fields (esp contentacl)
-data:        data to initialize to
-resolves to:        expanded data
+```
+data:           data to initialize to
+resolves to:    expanded data
+```
 
-
-static async p_new (data, master, key, firstinstance, verbose)
+##### static async p_new (data, master, key, firstinstance, verbose)
 Create a new instance of VersionList, store it, initialize _working and add to KeyChain:
 _acl will be default KeyChain if not specified
-data, master, key        see expanddata
-firstinstance        instance used for initialization, will be copied for each version.
-resolves to:        new instance of VersionList (note since static, it cannot make subclasses)
+```
+data,           see p_expanddata
+master, key     see CommonList
+firstinstance   instance used for initialization, will be copied for each version.
+resolves to:    new instance of VersionList (note since static, it cannot make subclasses)
+```
 
-
-async p_saveversion(verbose)
-Update the content edited i.e. sign a copy and store on the list, then make a new copy to work with.
-Triggered by Save.
+##### async p_saveversion(verbose)
+Update the content edited i.e. sign a copy and store on the list, 
+then make a new copy to work with.
+Triggered by Save in most examples.
+```
 resolves to:        Signature of saved version
-async p_restoreversion(sig, verbose)
-Go back to version from a specific sig
+```
+
+##### async p_restoreversion(sig, verbose)
+Go back to version from a specific sig (sets _working)
+```
 sig:        Signature to go back to
+```
 
-
-async p_fetchlistandworking(verbose)
+##### async p_fetchlistandworking(verbose)
 Fetch the list of versions, and get the data for the most recent one (explicitly does not fetch data of earlier versions)
 
-
-preflight(dd) {
+##### preflight(dd)
 Prepare data for storage, does not store private URL of contentacl in public (!master) version
+```
 dd        dict containing data preparing for storage (from subclass)
 returns        dict ready for storage if not modified by subclass
 ```
 
-## TODO Classes still to document
-* *KeyValue*:       Manages a KeyValue object intended to be stored as a single item
-* *KeyChain*: List of Keys that a logged in user has access to
-* *AccessControlList*: Holds a list of encrypted tokens controlling access
-* *VersionList*:    Manages something which exists in multiple versions.
-* *Domain (Leaf)*: A table hierarchically mapping names to a resource
-* *Errors*:             Utility set of classes with Error classes
-* *EventListenerHandler*:   Utility class for handling event listening.
-utils
-check for other files
+## Naming Layer
+The naming layer is to support a simple recursive naming system 
+allowing a string to be resolved to a set of URLs that may be used for retrieval
+
+It consists of a pair of classes and two mixins (groups of functions for multiple classes)
+* Domain - defines a naming domain in which other things are named
+* Leaf - defines the end point of naming and refers to an object stored, 
+includes some metadata to enable handling
+* SignatureMixin - generic signature tool, specifies which fields of an object should be signed
+* NameMixing - generic name defining tool
+
+### SignatureMixin = function(fieldlist) {
+This mixin is a generic signature tool, allows to specify which fields of an object 
+should be signed/verified.
+
+Each signature is of JSON.stringify({date, signed} where signed is fields from fieldlist
+
+To apply this mixin, see the example in Domain.js
+SignatureMixin.call(Domain.prototype, ["tablepublicurls", "name", "keys", "expires"]);
+
+##### Fields (on Mixing in class):
+```
+signatures: Array of dictionaries
+    date,                   ISODate when signed
+    signature,              Signature (see KeyPair)
+    signedby,               Exported Public Key of Signer (see KeyPair)
+```
+##### Class Fields (on Mixing in class):
+fieldlist   List of fields to sign
+
+##### signatureConstructor()
+Called from mixing in class - empties signatures
+
+##### _signable(date)
+Create a string suitable for signing
+```
+returns: JSON like "{ date: isodate, signed: { field/values to be signed }"
+```
+##### _signSelf(keypair)
+Add a signature for the fieldlist to signatures, Pair of verify
+
+##### _verifyOwnSigs()
+Pair of sign, caller should check it accepts the keys returned
+```
+Returns array of keys that signed this match, 
+```
+
+### NameMixin = function(options)
+This Mixin defines fields and methods needed to name something in a Domain,
+Typically this will be either: another Domain; another SmartDict or class; raw content (e.g a PDF or HTML.
+
+##### Signed Fields (on Mixing in class)
+```
+tableurls | tablepublicurls Where to find the object (or table if its a domain)
+expires: ISODATE        When this name should be considered expired (it might still be resolved, but not if newer names available.
+(there is no validfrom time, this is implicitly when it was signed)
+name: str               Names that this record applies to relative to table its in. e.g.  fred, father
+```
+##### nameConstructor()
+should be called by Mixing in classes construtor
+
+### Leaf extends SmartDict and mixes in NameMixin & SignatureMixin
+The Leaf class is used to register another object in a domain.
+
+##### Fields
+```
+urls:       Points at object being named (for a SmartDict object its obj._publicurls)
+mimetype:   Mimetype of content esp application/json
+metadata:   Other information about the object needed before or during retrieval.
+            This is a good place to extend, please document any here for now.
+    jsontype: archive.org.dweb   is a way to say its a Dweb object,
+    jsontype: archive.org.metadata is for archive.org metadata
+Fields inherited from SignatureMixin: signatures
+Fields inherited from NameMixin: expires; name;
+```
+##### new Leaf(data, verbose, options)
+Constructs new Leaf, calls signature and name mixin constructors
+
+##### static async p_new(data, verbose, options)
+Create a new Leaf
+returns Leaf
+
+##### async p_printable({indent="  ",indentlevel=0}={})
+Support debugging
+```
+returns Multiline output that can be displayed for debugging
+```
+##### async p_resolve(path, {verbose=false}={})
+Sees it it can resolve the path in the Leaf further, because we know the type of object (e.g. can return subfield of some JSON)
+```
+path    / separated string to resolve in object
+```
+
+### Domain extends KeyValueTable and mixes in NameMixin & SignatureMixin
+The Domain class is for name resolution across multiple technologies.
+
+Domains are of the form /arc/somedomain/somepath/somename
+Where signed records at each level lead to the next level
+
+##### Fields:
+```
+keys: [NACL VERIFY:xyz*]   Public Key to use to verify entries - identified by type, any of these keys can be used to sign a record
+Fields inherited from NameMixin: name; expires; signatures
+Fields inherited from SignatureMixin: signature
+Fields inherited from KeyValueTable
+    tablepublicurls: [ str* ]       Where to find the table.
+    _map:   KeyValueTable   Mapping of name strings beneath this Domain
+```
+
+##### new Domain(data, verbose, options)
+Constructs new Domain, calls signature and name mixin constructors
+
+##### static async p_new(data, master, key, verbose, seedurls, kids)
+Construct and return new Domain
+```
+data, master, key   See KeyValueTable.p_new
+seedurls:   Urls that can be used in addition to any auto-generatd ones
+kids:       dict Initial subdomains or leafs { subdomain: Leaf or Domain }
+```
+
+##### sign(subdomain) { // Pair of verify
+Sign a subdomain with this domains private key
+```
+subdomain:  Domain or Leaf
+```
+
+##### verify(name, subdomain) { // Pair of sign
+Check the subdomain is valid.
+That is the case if the subdomain has a cryptographically valid signatures by one of the domain's keys and the name matches the name we have it at.
+```
+returns:    boolean
+```
+
+##### async p_register(name, registrable, verbose) {
+Register an object.
+Code path is domain.p_register -> domain.p_set
+```
+name:   What to register it under, relative to "this"
+registrable:    Either a Domain or Leaf, or else something with _publicurls or _urls (i.e. after calling p_store) and it will be wrapped with a Leaf
+```
+
+##### static async p_rootSet( {verbose=false}={})
+Setup a standard set of urls for the root domain
+
+
+##### static async p_rootResolve(path, {verbose=false}={}) {
+Resolve a path relative to the root
+```
+path    see p_resolve
+resolves to:    [ Leaf, remainder ]
+raises:         CodingError
+```
+
+##### async p_resolve(path, {verbose=false}={})
+Resolves a path retlative to this Domain, should resolve to the Leaf
+```
+path            / separated path, e.g. arc/archive.org/details
+resolves to:    [ Leaf, remainder ]
+raises:         CodingError
+```
+
+##### async p_printable({indent="  ",indentlevel=0, maxindent=9}={}) {
+Support printable debugging
+```
+returns multi line string suitable for console.log
+```
+##### static async p_setupOnce({verbose=false} = {})
+Intended to be run once to setup global names
+
+##### static async p_resolveNames(name, {verbose=false}={})
+Turn an array of urls into another array, resolving any names if possible and leaving other URLs untouched
+Try and resolve a name,
+```
+name:   One, or an array of Names of the form dweb:/ especially dweb:/arc/archive.org/foo
+resolves to:    [ url ]  Array of urls which will be empty if not resolved (which is quite likely if relative name not defined)
+```
+
+##### privateFromKeyChain() {
+Look in the logged in user's keychains to see if have the private version of this domain, in which case can work on it
+```
+returns:    undefined or Domain
+```
+
+## Error classes
+Errors are implemented as classes to make it easier to check if certain kinds of errors have 
+been thrown. The current set are as below, the message is the class name, but can be overwritten in the constructor.
+e.g. new errors.CodingError("Shouldnt have done this")
+
+Class|Means
+-----|-----
+ToBeImplementedError|The code for this has not been implemented
+ObsoleteError|An old function that probably shouldnt be being called - check the code.
+TransportError|Something went wrong fetching or storing to the underlying transports.
+CodingError|Use this when the code logic has been broken - e.g. something is called with an undefined parameter, its preferable to console.assert Typically this is an error, that should have been caught higher up.
+EncryptionError|Use this when the logic of encryption wont let you do something, typically something higher should have stopped you trying. Examples include signing something when you only have a public key.
+SigningError|Use this something that should have been signed isn't - this is externally signed, i.e. a data rather than coding error
+ForbiddenError|You aren't allowed to do this
+AuthenticationError|Authentication stopped you doing something, i.e. logging in might help.
+IntentionallyUnimplementedError|This function isn't implemented, and that is intentional, so it probably shouldnt be being called. (Check the code)
+DecryptionFailError|We failed to decrypt something although the Authentication looked good.
+SecurityWarning|A warning that we are doing something unsafe.
+ResolutionError|Failed to resolve a name (see Domains.js)
+
+##Event Listening
+Events aren't widely used yet in this library. There are several event listening mechanisms being used, mostly for compatability with other code. 
+At some point they may get merged, and could possible be setup as a Mixin, although all users
+are currently subclasses of PublicPrivate.  
+
+* PublicPrivate - implements its own architecture see above
+* EventListener class as used by KeyChain at the class level
+
+### EventListener - used by KeyChain
+An event is a callback f({name, values})
+
+##### new EventListener()
+Create a new eventListeners field initialized to empty.
+e.g. this.eventHandler = new EventListenerHandler()
+
+##### addEventListener(f(name, values) => undefined)
+Add a event listener that will be called back on any events on this EventListener
+
+##### removeEventListener(f(name, values) => undefined))
+Remove an event listener if an exact match is found.
+
+##### removeAllEventListeners()
+Remove all event listeners 
+
+##### callEventListeners(event)
+Call all the handlers, its up to each handler to decide if its listening for this kind of event. 
+A shallow copy of the values is passed. 
+```
+event = { dict, typically { type: 'insert', values: [x,y,z]}
+```
+
+### Which events caught where. 
+
+Class|Events|Event handler type|Setup|Sent|Caught
+-----|------|------------------|-----|----|------
+KeyChain (class)|login|EventListener|apps|KC.p_new|applications
+KeyValueTable (instance)|set, delete|PublicPrivate|KVT.monitor|Transports.monitor||
+
+## Utilities
+A class exists with a set of generally useful functions. 
+
+##### consolearr(arr)
+console.log an array, prints the length and one or two members for long arrays
+
+##### intersects(a,b) =>  boolean
+Quick intersection for short arrays. Note there are better solutions exist for longer arrays
+This is intended for comparing two sets of probably equal, but possibly just intersecting URLs
+```
+a, b    (shortish) arrays
+Returns true if two shortish arrays a and b intersect 
+    or if b is not an array, then if b is in a
+    If a is undefined then result is false
+```
+##### mergeTypedArraysUnsafe(a, b)
+Take care of inability to concatenate typed arrays such as Uint8. 
+```
+a,b     Typed arrays e.g. Uint8Array, behave is unpredictable if they are different types
+returns Array of same type as a, but concatenated shallow copy.
+```
+##### objectfrom (data, hints={})
+Generic way to turn something into a object (typically expecting a string, or a buffer)
+This can get weird, there appear to be two DIFFERENT Uint8Arrays, one has a constructor "TypedArray" the other "Uint8Array"
+"TypedArray" doesnt appear to be defined so can't test if its an instance of that, but in tests the TypedArray ones are
+not instances of Buffer and need converting first
+```
+data    object (returned unchanged), string, buffer, Uint8Array (either kind)
+hints   currently unused
+returns object parsing JSON
+```
+##### keyFilter(dic, keys)
+Utility to return a new dic containing each of keys 
+(equivalent to python { dic[k] for k in keys }
+```
+dic Dictionary object, 
+keys    [ str* ] keys to return from object.
+```
+
+##### createElement(tag, attrs, ...children)
+Create a new HTML Element, set its attributes, and add children to it. 
+Note that ReactFake in dweb-archive expands on this in an application specific manner, 
+and dweb-transports/htmutils.js has a more flexible version. 
+TODO merge from dweb-transport back to here.
+```
+tag     lowercase tag e.g. 'img'
+attrs   dictionary of attributes to set, the values of this dictionary can be objects
+children    Any number of parameters each being a HtmlElement or an array of Elements.
+```
