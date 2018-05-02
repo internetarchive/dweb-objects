@@ -217,27 +217,6 @@ class Domain extends KeyValueTable {
         * keep reducing till get to something can resolve.
       */
 
-    async p_get(key, verbose) {
-        if (Array.isArray(key)) {
-            const res = {};
-            const self = this;
-            await Promise.all(key.map((n) => { res[n] = self.p_get(n, verbose)}));
-            return res;
-        }
-        if (this._map[key])
-            return this._map[key]; // If already have a defined result then return it (it will be from this session so reasonable to cache)
-        const rr = (await Promise.all(this.tablepublicurls.map(u => DwebTransports.p_get([u], key, {verbose}).catch((err) => undefined))))
-            .map(r => this._mapFromStorage(r))
-        // Errors in above will result in an undefined in the res array, which will be filtered out.
-        // res is now an array of returned values in same order as tablepublicurls
-        //TODO-NAME should verify here before do this test but note Python gateway is still using FAKEFAKEFAKE as a signature
-        //
-        const indexOfMostRecent = rr.reduce((iBest, r, i, arr) => (r && r.signatures[0].date) > (arr[iBest] || "" && arr[iBest].signatures[0].date) ? i : iBest, 0);
-        //TODO-NAME save best results to others.
-        const value = rr[indexOfMostRecent];
-        this._map[key] = value;
-        return value;
-    }
     // use p_getall to get all registered names
 
     static async p_rootSet( {verbose=false}={}){
@@ -288,7 +267,7 @@ class Domain extends KeyValueTable {
         */
         const remainder = path.split('/');
         const name = remainder.shift();
-        res = await this.p_get(name, verbose);
+        res = await this.p_getMerge(name, verbose);
         if (res) {
             res = await SmartDict._after_fetch(res, [], verbose);  //Turn into an object
             this.verify(name, res);                                     // Check its valid

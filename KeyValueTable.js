@@ -148,6 +148,35 @@ class KeyValueTable extends PublicPrivate {
         // Return from _map after possibly updating it
         return utils.keyFilter(this._map, keys);
     }
+
+    async p_getMerge(keys, verbose) {
+        /*
+        Get the value of a key, but if there are multiple tablepublicurls then check them all, and use the most recent value
+        TODO - will store most recent back to stores that don't have it.
+
+        key:    Key or Array of keys.
+        return: value or array of values
+         */
+        if (Array.isArray(keys)) {
+            const res = {};
+            const self = this;
+            await Promise.all(keys.map((n) => { res[n] = self.p_get(n, verbose)}));
+            return res;
+        }
+        if (this._map[keys])
+            return this._map[keys]; // If already have a defined result then return it (it will be from this session so reasonable to cache)
+        const rr = (await Promise.all(this.tablepublicurls.map(u => DwebTransports.p_get([u], keys, {verbose}).catch((err) => undefined))))
+            .map(r => this._mapFromStorage(r))
+        // Errors in above will result in an undefined in the res array, which will be filtered out.
+        // res is now an array of returned values in same order as tablepublicurls
+        //TODO-NAME should verify here before do this test but note Python gateway is still using FAKEFAKEFAKE as a signature
+        const indexOfMostRecent = rr.reduce((iBest, r, i, arr) => (r && r.signatures[0].date) > (arr[iBest] || "" && arr[iBest].signatures[0].date) ? i : iBest, 0);
+        //TODO-NAME save best results to others.
+        const value = rr[indexOfMostRecent];
+        this._map[keys] = value;
+        return value;
+    }
+
     async p_keys(verbose) {
         /*
         returns array of all keys
