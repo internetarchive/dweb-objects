@@ -11,8 +11,8 @@
     "url": "https://github.com/internetarchive/dweb-objects/issues"
   },
   "dependencies": {
-    "dweb-transports": "git+https://git@github.com/internetarchive/dweb-transports.git",
     "custom-event": "latest",
+    "dweb-transports": "git+https://git@github.com/internetarchive/dweb-transports.git",
     "libsodium-wrappers": "git+https://git@github.com/mitra42/libsodium.js.git",
     "multihashes": "latest",
     "sha.js": "latest"
@@ -20,7 +20,7 @@
   "description": "Internet Archive Decentralized Web Transports Library",
   "devDependencies": {
     "chai": "latest",
-    "jsdom": "latest",
+    "jsdom": "^11.10.0",
     "y-leveldb": "latest"
   },
   "homepage": "https://github.com/internetarchive/dweb-objects#readme",

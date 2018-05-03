@@ -29,12 +29,12 @@ const DwebObjects = require('dweb-objects;)      #adds the object library
 
 * Install npm & node
 * Clone this repo and cd to it.
-* `npm build` will create dist/dweb_transports_object.js
+* `npm build` will create dist/dweb-transports-bundle and dweb-objects-bundle.js
 * Add to your `<HEAD>`
 
 ```
-<SCRIPT type="text/javascript" src="dweb_transports_bundle.js"></SCRIPT>
-<SCRIPT type="text/javascript" src="dweb_objects_bundle.js"></SCRIPT>
+<SCRIPT type="text/javascript" src="dweb-transports-bundle.js"></SCRIPT>
+<SCRIPT type="text/javascript" src="dweb-objects-bundle.js"></SCRIPT>
 ```
 
 See the examples in the [`dweb-transport` repo](https://github.com/internetarchive/dweb-transport) for some example code. 
