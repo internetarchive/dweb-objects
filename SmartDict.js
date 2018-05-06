@@ -2,9 +2,6 @@ const errors = require('./Errors');
 const utils = require('./utils'); // Utility functions
 // Depends on var DwebTransports being set externally - its done this way so that both direct and ServiceWorker/Proxy can be used
 
-// See CommonBlock.py for Python version
-//TODO-API merge Transportable into here, delete Block
-
 class SmartDict {
     /*
     Subclass of Transport that stores a data structure, usually a single layer Javascript dictionary object.
