@@ -322,6 +322,8 @@ class Domain extends KeyValueTable {
         Domain.root = await Domain.p_new({_acl: archiveadminkc, name: "", keychain: archiveadminkc}, true, {passphrase: pass2+"/"}, verbose, [], {   //TODO-NAME will need a secure root key
             arc: await Domain.p_new({_acl: archiveadminkc, keychain: archiveadminkc},true, {passphrase: pass2+"/arc"}, verbose, [], { // /arc domain points at our top level resolver.
                 "archive.org": await Domain.p_new({_acl: archiveadminkc, keychain: archiveadminkc}, true, {passphrase: pass2+"/arc/archive.org"}, verbose, [], {
+                            ".": await Leaf.p_new({urls: ["https://dweb.me/examples/archive.html"], mimetype: "text/html",
+                                metadata: {htmlusesrelativeurls: true}}, verbose,[], {}),
                             "details": await Leaf.p_new({urls: ["https://dweb.me/examples/archive.html"], mimetype: "text/html",
                                 metadata: {htmlusesrelativeurls: true, htmlpath: "item"}}, verbose,[], {}),
                             metadata: await Domain.p_new({_acl: archiveadminkc, keychain: archiveadminkc}, true, {passphrase: pass2+"/arc/archive.org/metadata"}, verbose, [metadataGateway], {}),
