@@ -329,8 +329,8 @@ class Domain extends KeyValueTable {
                                 metadata: {htmlusesrelativeurls: true}}, verbose,[], {}),
                             "details": await Leaf.p_new({urls: ["https://dweb.me/examples/archive.html"], mimetype: "text/html",
                                 metadata: {htmlusesrelativeurls: true, htmlpath: "item"}}, verbose,[], {}),
-                            "images": await Leaf.p_new({urls: ["https://dweb.me/examples/images/"],
-                                metadata: {htmlpath: "/" }}, verbose,[], {}),
+                            "images": await Leaf.p_new({urls: ["https://dweb.me/examples/images/"], metadata: {htmlpath: "/" }}, verbose,[], {}),
+                            "serve": await Leaf.p_new({urls: ["https://dweb.me/content/archiveid/"], metadata: {htmlpath: "/" }}, verbose,[], {}), // Example is in commute.description
                             "metadata": await Domain.p_new({_acl: archiveadminkc, keychain: archiveadminkc}, true, {passphrase: pass2+"/arc/archive.org/metadata"}, verbose, [metadataGateway], {}),
                             "search.php": await Leaf.p_new({urls: ["https://dweb.me/examples/archive.html"], mimetype: "text/html",
                                 metadata: {htmlusesrelativeurls: true, htmlpath: "path"}}, verbose,[], {})
