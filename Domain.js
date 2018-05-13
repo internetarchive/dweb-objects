@@ -124,7 +124,10 @@ class Leaf extends SmartDict {
                     throw new errors.ResolutionError(`Leaf.p_resolve unable to resolve path: ${path} in ${this.name} because jsontype ${this.metadata["jsontype"]} unrecognized`);
                 }
             } else if (["text/html"].includes(this.mimetype) ) {
-                return [ this, path];
+                return [this, path];
+            } else if (this.metadata.htmlpath === "/") {   // See if we have a leaf that is a directory and a remainder
+                this.urls = this.urls.map(u => u + path);            // Append the remainder to each URL - url should end in / for a directory, and path should not start with a /
+                return [this, ""];
             } else {
                 console.error("Leaf.p_resolve, unknown mimetype", this.mimetype)
                 throw new errors.ResolutionError(`Leaf.p_resolve unable to resolve path: ${path} in ${this.name} because mimetype ${this.mimetype} unrecognized`);
@@ -326,7 +329,9 @@ class Domain extends KeyValueTable {
                                 metadata: {htmlusesrelativeurls: true}}, verbose,[], {}),
                             "details": await Leaf.p_new({urls: ["https://dweb.me/examples/archive.html"], mimetype: "text/html",
                                 metadata: {htmlusesrelativeurls: true, htmlpath: "item"}}, verbose,[], {}),
-                            metadata: await Domain.p_new({_acl: archiveadminkc, keychain: archiveadminkc}, true, {passphrase: pass2+"/arc/archive.org/metadata"}, verbose, [metadataGateway], {}),
+                            "images": await Leaf.p_new({urls: ["https://dweb.me/examples/images/"],
+                                metadata: {htmlpath: "/" }}, verbose,[], {}),
+                            "metadata": await Domain.p_new({_acl: archiveadminkc, keychain: archiveadminkc}, true, {passphrase: pass2+"/arc/archive.org/metadata"}, verbose, [metadataGateway], {}),
                             "search.php": await Leaf.p_new({urls: ["https://dweb.me/examples/archive.html"], mimetype: "text/html",
                                 metadata: {htmlusesrelativeurls: true, htmlpath: "path"}}, verbose,[], {})
                             //Note I was seeing a lock error here, but cant repeat now - commenting out one of these last two lines seemed to clear it.
@@ -354,10 +359,12 @@ class Domain extends KeyValueTable {
         } else {
             name = name.replace("dweb:/", ""); // Strip leading dweb:/ before resolving in root
             const res = await Domain.p_rootResolve(name, {verbose});     // [ Leaf object, remainder ] //TODO-NAME see comments in p_rootResolve about FAKEFAKEFAKE
-            if (!(res[0] && (res[0].name === name.split('/').splice(-1)[0]) && !res[1])) {
+            //if (!(res[0] && (res[0].name === name.split('/').splice(-1)[0]) && !res[1])) {   // checks /aaa/bbb/ccc resolved to something with name=ccc and no remainder
+            if (!(res[0] && !res[1])) {   // checks /aaa/bbb/ccc resolved to something with name=ccc and no remainder
                 return undefined
+            } else {
+                return res[0].urls;
             }
-            return res[0].urls;
         }
     }
     privateFromKeyChain() {
