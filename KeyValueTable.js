@@ -96,7 +96,7 @@ class KeyValueTable extends PublicPrivate {
             throw(err);
         }
     }
-    preflight(dd) {
+    preflight(dd) {  //TODO could generalize this to a list of fields to be deleted on non-master versions
         let master = dd._master; //Save before super.preflight
         dd = super.preflight(dd);  // Edits dd in place, in particular deletes anything starting with _
         if (! master) {

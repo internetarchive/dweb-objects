@@ -154,7 +154,7 @@ class Domain extends KeyValueTable {
     keys: [NACL VERIFY:xyz*]   Public Key to use to verify entries - identified by type, any of these keys can be used to sign a record
 
 
-    Fields inherited from NameMixin: name; expires; signatures
+    Fields inherited from NameMixin: name; expires;
     Fields inherited from SignatureMixin: signatures
 
     Fields inherited from KeyValueTable
