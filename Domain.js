@@ -124,7 +124,10 @@ class Leaf extends SmartDict {
                     throw new errors.ResolutionError(`Leaf.p_resolve unable to resolve path: ${path} in ${this.name} because jsontype ${this.metadata["jsontype"]} unrecognized`);
                 }
             } else if (["text/html"].includes(this.mimetype) ) {
-                return [ this, path];
+                return [this, path];
+            } else if (this.metadata.htmlpath === "/") {   // See if we have a leaf that is a directory and a remainder
+                this.urls = this.urls.map(u => u + path);            // Append the remainder to each URL - url should end in / for a directory, and path should not start with a /
+                return [this, ""];
             } else {
                 console.error("Leaf.p_resolve, unknown mimetype", this.mimetype)
                 throw new errors.ResolutionError(`Leaf.p_resolve unable to resolve path: ${path} in ${this.name} because mimetype ${this.mimetype} unrecognized`);
@@ -151,7 +154,7 @@ class Domain extends KeyValueTable {
     keys: [NACL VERIFY:xyz*]   Public Key to use to verify entries - identified by type, any of these keys can be used to sign a record
 
 
-    Fields inherited from NameMixin: name; expires; signatures
+    Fields inherited from NameMixin: name; expires;
     Fields inherited from SignatureMixin: signatures
 
     Fields inherited from KeyValueTable
@@ -231,8 +234,8 @@ class Domain extends KeyValueTable {
 
     static async p_rootSet( {verbose=false}={}){
         //TODO-CONFIG put this (and other TODO-CONFIG into config file)
-        const rootpublicurls = [
-            "contenthash:/contenthash/QmRgvjFsRMNAGstAUZUcBxYsg6zejHFEZfcFzvzV6osPyF" ]; //'ipfs:/ipfs/zdj7WmmDLq6W3GvWFuPoPSw53dbij2oPRYBTVa7hbRWoNeE5P',
+        // [ "contenthash:/contenthash/QmRgvjFsRMNAGstAUZUcBxYsg6zejHFEZfcFzvzV6osPyF" ]; // Prior to 2018-05-22
+        const rootpublicurls = [ 'contenthash:/contenthash/QmRiVND6Ct23jekiS7gA5toD4T7F7RZZ37DzHwzKuhdaN7' ]; // As of 2018-05-22
         this.root = await SmartDict.p_fetch(rootpublicurls,  {verbose, timeoutMS: 5000});
     }
 
@@ -300,7 +303,8 @@ class Domain extends KeyValueTable {
     }
     static async p_setupOnce({verbose=false} = {}) {
         //const metadatagateway = 'http://localhost:4244/leaf/archiveid';
-        const metadataGateway = 'https://gateway.dweb.me/leaf/archiveid';
+        //const metadataGateway = 'https://gateway.dweb.me/leaf/archiveid';
+        const metadataGateway = 'https://gateway.dweb.me/arc/archive.org/leaf';
         //TODO-NAMING change passphrases to something secret, figure out what need to change
         const pass1 = "all knowledge for all time to everyone for free"; // TODO-NAMING make something secret
         const pass2 = "Replace this with something secret"; // Base for other keys during testing - TODO-NAMING replace with keygen: true so noone knows private key
@@ -326,7 +330,9 @@ class Domain extends KeyValueTable {
                                 metadata: {htmlusesrelativeurls: true}}, verbose,[], {}),
                             "details": await Leaf.p_new({urls: ["https://dweb.me/examples/archive.html"], mimetype: "text/html",
                                 metadata: {htmlusesrelativeurls: true, htmlpath: "item"}}, verbose,[], {}),
-                            metadata: await Domain.p_new({_acl: archiveadminkc, keychain: archiveadminkc}, true, {passphrase: pass2+"/arc/archive.org/metadata"}, verbose, [metadataGateway], {}),
+                            "images": await Leaf.p_new({urls: ["https://dweb.me/examples/images/"], metadata: {htmlpath: "/" }}, verbose,[], {}),
+                            "serve": await Leaf.p_new({urls: ["https://dweb.me/content/archiveid/"], metadata: {htmlpath: "/" }}, verbose,[], {}), // Example is in commute.description
+                            "metadata": await Domain.p_new({_acl: archiveadminkc, keychain: archiveadminkc}, true, {passphrase: pass2+"/arc/archive.org/metadata"}, verbose, [metadataGateway], {}),
                             "search.php": await Leaf.p_new({urls: ["https://dweb.me/examples/archive.html"], mimetype: "text/html",
                                 metadata: {htmlusesrelativeurls: true, htmlpath: "path"}}, verbose,[], {})
                             //Note I was seeing a lock error here, but cant repeat now - commenting out one of these last two lines seemed to clear it.
@@ -354,10 +360,12 @@ class Domain extends KeyValueTable {
         } else {
             name = name.replace("dweb:/", ""); // Strip leading dweb:/ before resolving in root
             const res = await Domain.p_rootResolve(name, {verbose});     // [ Leaf object, remainder ] //TODO-NAME see comments in p_rootResolve about FAKEFAKEFAKE
-            if (!(res[0] && (res[0].name === name.split('/').splice(-1)[0]) && !res[1])) {
+            //if (!(res[0] && (res[0].name === name.split('/').splice(-1)[0]) && !res[1])) {   // checks /aaa/bbb/ccc resolved to something with name=ccc and no remainder
+            if (!(res[0] && !res[1])) {   // checks /aaa/bbb/ccc resolved to something with name=ccc and no remainder
                 return undefined
+            } else {
+                return res[0].urls;
             }
-            return res[0].urls;
         }
     }
     privateFromKeyChain() {
@@ -444,7 +452,8 @@ class Domain extends KeyValueTable {
             Domain.root = undefined; // Clear out test root
             if (verbose) console.log("NAMES connected");
             let res = await this.p_resolveNames(["dweb:/arc/archive.org/metadata/commute"], {verbose});
-            console.assert(res.includes("https://gateway.dweb.me/metadata/archiveid/commute"))
+            //console.assert(res.includes("https://gateway.dweb.me/metadata/archiveid/commute"))
+            console.assert(res.includes("https://gateway.dweb.me/arc/archive.org/metadata/commute"));
         } catch(err) {
             console.log("Exception thrown in Domain.p_test_gateway:", err.message);
             throw err;
