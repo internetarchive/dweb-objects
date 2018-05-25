@@ -304,7 +304,7 @@ class Domain extends KeyValueTable {
     static async p_setupOnce({verbose=false} = {}) {
         //const metadatagateway = 'http://localhost:4244/leaf/archiveid';
         //const metadataGateway = 'https://gateway.dweb.me/leaf/archiveid';
-        const metadataGateway = 'https://gateway.dweb.me/arc/archive.org/leaf';
+        const metadataGateway = 'https://dweb.archive.org/leaf';
         //TODO-NAMING change passphrases to something secret, figure out what need to change
         const pass1 = "all knowledge for all time to everyone for free"; // TODO-NAMING make something secret
         const pass2 = "Replace this with something secret"; // Base for other keys during testing - TODO-NAMING replace with keygen: true so noone knows private key
@@ -328,10 +328,11 @@ class Domain extends KeyValueTable {
                 "archive.org": await Domain.p_new({_acl: archiveadminkc, keychain: archiveadminkc}, true, {passphrase: pass2+"/arc/archive.org"}, verbose, [], {
                             ".": await Leaf.p_new({urls: ["https://dweb.me/examples/archive.html"], mimetype: "text/html",
                                 metadata: {htmlusesrelativeurls: true}}, verbose,[], {}),
+                            //TODO-ARC change these once dweb.me fixed
                             "details": await Leaf.p_new({urls: ["https://dweb.me/examples/archive.html"], mimetype: "text/html",
                                 metadata: {htmlusesrelativeurls: true, htmlpath: "item"}}, verbose,[], {}),
                             "images": await Leaf.p_new({urls: ["https://dweb.me/examples/images/"], metadata: {htmlpath: "/" }}, verbose,[], {}),
-                            "serve": await Leaf.p_new({urls: ["https://dweb.me/content/archiveid/"], metadata: {htmlpath: "/" }}, verbose,[], {}), // Example is in commute.description
+                            "serve": await Leaf.p_new({urls: ["https://dweb.archive.org/download/"], metadata: {htmlpath: "/" }}, verbose,[], {}), // Example is in commute.description
                             "metadata": await Domain.p_new({_acl: archiveadminkc, keychain: archiveadminkc}, true, {passphrase: pass2+"/arc/archive.org/metadata"}, verbose, [metadataGateway], {}),
                             "search.php": await Leaf.p_new({urls: ["https://dweb.me/examples/archive.html"], mimetype: "text/html",
                                 metadata: {htmlusesrelativeurls: true, htmlpath: "path"}}, verbose,[], {})
