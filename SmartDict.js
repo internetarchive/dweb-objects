@@ -205,7 +205,7 @@ class SmartDict {
         else if (typeof obj === "string")
             obj = await SmartDict.p_fetch([obj], verbose);
         //else // Expecting its subclass of SmartDict or otherwise has a p_objbrowser method
-        await obj.p_objbrowser(el,{maxdepth: 2, verbose: false});    // TODO-OBJBROWSER could pass args here but this comes from UI onclick
+        await obj.p_objbrowser(el,{maxdepth: 2, verbose: false});    //Could pass args here but this comes from UI onclick
         return false;
     }
     objbrowser_urlarray(el, name, arr, {links=false}={}) {
@@ -246,7 +246,7 @@ class SmartDict {
         let fieldtypes = { _acl: "obj", _urls: "urlarray", table: "str", name: "str" } // Note Name is not an explicit field, but is normally set
         return fieldtypes[propname];
     }
-    p_objbrowser(el, {maxdepth=2, verbose=false}={}) {  //TODO this is marked async, but looks sync to me ... maybe subclasses are async
+    async p_objbrowser(el, {maxdepth=2, verbose=false}={}) { // Note This could be sync, but subclassing is async
         //TODO-OBJBROWSER empty values & condition on option
         if (typeof el === 'string') { el = document.getElementById(el); }
         for (let propname in this) {
@@ -279,7 +279,6 @@ class SmartDict {
                             // Super classes call super.p_objbrowser(el,options) here
                             this.objbrowser_str(el, propname, this[propname].toString())
                             console.log("objbrowser warning, no field type specified for",propname);
-                        //TODO-OBJBROWSER do superclasses
                     }
             }
         }

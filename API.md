@@ -53,8 +53,6 @@ The verbose parameter is a boolean that is an indicator of a need to output to t
 
 Fields starting with "_" are by convention not stored. 
 
-<TODO - add some examples here>
-
 Note: I am gradually (April2018) changing the API to take an opts {} dict which includes verbose as one field. This process is incomplete, but I’m happy to see it accelerated if there is any code built on this, just let mitra@archive.org know.
 
 ##Creating new Subclasses
