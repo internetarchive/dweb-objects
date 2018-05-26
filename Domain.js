@@ -247,7 +247,7 @@ class Domain extends KeyValueTable {
             path = path.slice(1);
         }
         const res = await this.root.p_resolve(path, {verbose});
-        console.log("Resolved path",path, "to", res);
+        console.log("Resolved path",path, "to", await res[0].p_printable({maxindent: 0}), res[1] ? "remaining:" + res[1] : "");
         console.groupEnd();
         return res;
 
@@ -327,15 +327,15 @@ class Domain extends KeyValueTable {
             arc: await Domain.p_new({_acl: archiveadminkc, keychain: archiveadminkc},true, {passphrase: pass2+"/arc"}, verbose, [], { // /arc domain points at our top level resolver.
                 "archive.org": await Domain.p_new({_acl: archiveadminkc, keychain: archiveadminkc}, true, {passphrase: pass2+"/arc/archive.org"}, verbose, [], {
                             ".": await Leaf.p_new({urls: ["https://dweb.me/examples/archive.html"], mimetype: "text/html",
-                                metadata: {htmlusesrelativeurls: true}}, verbose,[], {}),
+                                metadata: {htmlusesrelativeurls: true}}, verbose, {}),
                             //TODO-ARC change these once dweb.me fixed
                             "details": await Leaf.p_new({urls: ["https://dweb.me/examples/archive.html"], mimetype: "text/html",
                                 metadata: {htmlusesrelativeurls: true, htmlpath: "item"}}, verbose,[], {}),
-                            "images": await Leaf.p_new({urls: ["https://dweb.me/examples/images/"], metadata: {htmlpath: "/" }}, verbose,[], {}),
-                            "serve": await Leaf.p_new({urls: ["https://dweb.archive.org/download/"], metadata: {htmlpath: "/" }}, verbose,[], {}), // Example is in commute.description
+                            "images": await Leaf.p_new({urls: ["https://dweb.me/examples/images/"], metadata: {htmlpath: "/" }}, verbose, {}),
+                            "serve": await Leaf.p_new({urls: ["https://dweb.archive.org/download/"], metadata: {htmlpath: "/" }}, verbose, {}), // Example is in commute.description
                             "metadata": await Domain.p_new({_acl: archiveadminkc, keychain: archiveadminkc}, true, {passphrase: pass2+"/arc/archive.org/metadata"}, verbose, [metadataGateway], {}),
                             "search.php": await Leaf.p_new({urls: ["https://dweb.me/examples/archive.html"], mimetype: "text/html",
-                                metadata: {htmlusesrelativeurls: true, htmlpath: "path"}}, verbose,[], {})
+                                metadata: {htmlusesrelativeurls: true, htmlpath: "path"}}, verbose, {})
                             //Note I was seeing a lock error here, but cant repeat now - commenting out one of these last two lines seemed to clear it.
                 })
             })

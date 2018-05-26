@@ -353,9 +353,7 @@ class SmartDict {
             if (verbose) console.log("SmartDict.p_fetch", urls);
             let data = await DwebTransports.p_rawfetch(urls, opts);  // Fetch the data Throws TransportError immediately if url invalid, expect it to catch if Transport fails
             let maybeencrypted = utils.objectfrom(data);         // Parse JSON (dont parse if p_fetch has returned object (e.g. from KeyValueTable
-            let decrypted = await this._after_fetch(maybeencrypted, urls, verbose); // AuthenticationError if can't decrypt
-
-            return decrypted;
+            return await this._after_fetch(maybeencrypted, urls, verbose); // AuthenticationError if can't decrypt
             // Returns new object that should be a subclass of SmartDict
         } catch(err) {
             console.log(`cant fetch and decrypt ${urls}`);
@@ -393,6 +391,6 @@ class SmartDict {
 SmartDict.decryptcb = undefined;
 SmartDict.table2class = { // Each of these needs a constructor that takes data and is ok with no other parameters, (otherwise define a set of these methods as factories)
     "sd": SmartDict
-}
+};
 
 exports = module.exports = SmartDict;
