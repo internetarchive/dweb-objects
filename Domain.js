@@ -136,6 +136,49 @@ class Leaf extends SmartDict {
             throw new errors.ResolutionError(err.message);
         }
     }
+    async p_boot({remainder=undefined, search_supplied=undefined, opentarget="_self", verbose=false}={}) { //TODO-API
+        /*
+            Utility to display a Leaf, will probably need expanding to more kinds of media and situations via options
+            Strategy depends on whether we expect relativeurls inside the HTML. If do, then need to do a window.open so that URL is correct, otherwise fetch and display as a blob
+
+            remainder:  Any remainder string to send to the attribute specified in "leaf.htmlpath if specified
+            search_supplied:    Anything supplied in after the ? in the original URL, should be added to the search string
+            thows:      First error encountered, if doesnt succeed with any url.
+         */
+        if (["text/html"].includes(this.mimetype)) {
+            //Its an HTML file, open it
+            if (this.metadata.htmlusesrelativeurls) {
+                let tempurls = this.urls;
+                const pathatt = this.metadata.htmlpath || "path";
+                // Loop through urls till succeed to open one of them
+                let errs = [];
+                while (tempurls.length) {
+                    let url = new URL(tempurls.shift());
+                    try {
+                        if (remainder) url.search = url.search + (url.search ? '&' : "") + `${pathatt}=${remainder}`;
+                        if (search_supplied) url.search = url.search + (url.search ? '&' : "") + search_supplied;
+                        if (verbose) console.log("Bootstrap loading url:", url.href);
+                        window.open(url.href, opentarget); //if opentarget is blank then I think should end this script.
+                        return; // Only try and open one - bypasses error throwing
+                    } catch(err) {
+                        console.log("Failed to open", url, err.message);
+                        errs.push(err);
+                    }
+                }
+                if (errs.length) {
+                    throw err[0];   // First error encountered
+                } else {
+                    throw new Error("Unable to open any URL in Leaf");
+                }
+            } else {
+                // Its not clear if parms make sense to a blob, if they are needed then can copy from above code
+                // Not setting timeoutMS as could be a slow load of a big file TODO-TIMEOUT make dependent on size
+                DwebObjects.utils.display_blob(await DwebTransports.p_rawfetch(this.urls, {verbose}), {type: this.mimetype, target: opentarget});
+            }
+        } else {
+            throw new Error("Bootloader fail, dont know how to display mimetype" + this.mimetype);
+        }
+    }
 
 }
 NameMixin.call(Leaf.prototype);
@@ -461,6 +504,29 @@ class Domain extends KeyValueTable {
         }
     }
 
+    static async p_resolveAndBoot(name, {verbose=false, search_supplied=undefined}={}) {
+        /*
+        Utility function for bootloader.html
+        Try and resolve a name, if get a Leaf then boot it, if get another domain then try and resolve the "." and boot that.
+        throws Error if cant resolve to a Leaf, or Error from loading the Leaf
+         */
+        let res = await this.p_rootResolve(name, {verbose});
+        let resolution = res[0];
+        let remainder = res[1];
+        if (resolution instanceof Leaf) {
+            await resolution.p_boot({remainder, search_supplied, verbose}); // Throws error if fails
+        } else if ((resolution instanceof Domain) && (!remainder)) {
+            res = await resolution.p_resolve(".", {verbose});
+            resolution = res[0];
+            remainder = res[1];
+            if (resolution instanceof Leaf) {
+                await resolution.p_boot({remainder, search_supplied, verbose}); // Throws error if fails
+            } else {
+                // noinspection ExceptionCaughtLocallyJS
+                throw new Error("Path resolves to a Domain even after looking at '.'");
+            }
+        }
+    }
 
 }
 NameMixin.call(Domain.prototype);   // Add in the Mixin
