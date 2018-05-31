@@ -143,6 +143,7 @@ class Leaf extends SmartDict {
 
             remainder:  Any remainder string to send to the attribute specified in "leaf.htmlpath if specified
             search_supplied:    Anything supplied in after the ? in the original URL, should be added to the search string
+            opentarget: Where to open the file, defaults to "_self"
             thows:      First error encountered, if doesnt succeed with any url.
          */
         if (["text/html"].includes(this.mimetype)) {
@@ -504,23 +505,27 @@ class Domain extends KeyValueTable {
         }
     }
 
-    static async p_resolveAndBoot(name, {verbose=false, search_supplied=undefined}={}) {
+    static async p_resolveAndBoot(name, {verbose=false, opentarget="_self", search_supplied=undefined}={}) {
         /*
         Utility function for bootloader.html
         Try and resolve a name, if get a Leaf then boot it, if get another domain then try and resolve the "." and boot that.
-        throws Error if cant resolve to a Leaf, or Error from loading the Leaf
+        search_supplied: Anything supplied in after the ? in the original URL, should be added to the search string
+        opentarget:      Where to open the file, defaults to "_self"
+        throws:          Error if cant resolve to a Leaf, or Error from loading the Leaf
+
+        TODO - are there any cases where want to try multiple names -dont think so
          */
         let res = await this.p_rootResolve(name, {verbose});
         let resolution = res[0];
         let remainder = res[1];
         if (resolution instanceof Leaf) {
-            await resolution.p_boot({remainder, search_supplied, verbose}); // Throws error if fails
+            await resolution.p_boot({remainder, search_supplied, opentarget, verbose}); // Throws error if fails
         } else if ((resolution instanceof Domain) && (!remainder)) {
             res = await resolution.p_resolve(".", {verbose});
             resolution = res[0];
             remainder = res[1];
             if (resolution instanceof Leaf) {
-                await resolution.p_boot({remainder, search_supplied, verbose}); // Throws error if fails
+                await resolution.p_boot({remainder, search_supplied, opentarget, verbose}); // Throws error if fails
             } else {
                 // noinspection ExceptionCaughtLocallyJS
                 throw new Error("Path resolves to a Domain even after looking at '.'");
