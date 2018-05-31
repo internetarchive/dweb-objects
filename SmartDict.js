@@ -331,6 +331,13 @@ class SmartDict {
         return new cls(decrypted, verbose);
         // Returns new object that should be a subclass of SmartDict
     }
+    //TODO-PATH notes below were written before Domain.js was built, better approach now would be to follow approach in Domain.js for "resolve" so that can have a Leaf be/point to a SmartDict (or other object) and then resolve a path in it
+    //TODO-PATH add a method SmartDict.path(str) => (SmartDict, unresolved)
+    //TODO-PATH uses step function. SmartDict.stepping(str) => (SmartDict, unresolved)  just does one step
+    //TODO-PATH override step in subclasses e.g. Versionlist could jump through to current, a list could do based on Name etc
+    //TODO-PATH see https://app.asana.com/0/235474089595967/476882458177199
+    //TODO-PATH try uploading a directory adn using as test /ipfs/QmbdBWeoke5hyf1NDUV9Bee5YWZcFTRqtc3M17ntQ4ZsKv
+
     static async p_fetch(urls, verboseOrOpts) {
         /*
         Fetches the object from Dweb, passes to p_decrypt in case it needs decrypting,

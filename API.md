@@ -1,4 +1,4 @@
-#dweb-objects  API
+# dweb-objects  API
 Mitra Ardron, Internet Archive,  mitra@mitra.biz
 
 This doc provides a concise API specification for the Dweb Javascript Object Libraries. 
@@ -7,7 +7,7 @@ It was last revised (to match the code) on 23 April 2018.
 
 If you find any discrepancies please add an issue here.
 
-##Overview
+## Overview
 
 The object layer sits above the Transport layer and channels access to it through a set of objects. 
 They provide a set of standardised methods that can be subclassed as needed to change the default behavior.
@@ -43,7 +43,7 @@ An object is generally retrieved by a call to
 There are a set of functions defined on the SmartDict which subclasses override where appropriate.
 
 
-##General API notes and conventions
+## General API notes and conventions
 We use a naming convention that anything starting “p_” returns a promise so you know to "await" it if you want a result.
 
 Ideally functions should take a String, Buffer or where applicable Object as parameters with automatic conversion. 
@@ -55,7 +55,7 @@ Fields starting with "_" are by convention not stored.
 
 Note: I am gradually (April2018) changing the API to take an opts {} dict which includes verbose as one field. This process is incomplete, but I’m happy to see it accelerated if there is any code built on this, just let mitra@archive.org know.
 
-##Creating new Subclasses
+## Creating new Subclasses
 This library is intended to make it easy to create highly functional Dweb classes without writing/maintaining
 much code. 
 
@@ -99,7 +99,7 @@ Add support for the objectbrowser by mapping field names to the type of field (s
 ##### async p_objbrowser(el, opts)
 Add support for the objectbrowser by for example fetching any lists prior to display. (see CommonList for example)
 
-##SmartDict Class
+## SmartDict Class
 
 Subclass of Transport that stores a data structure, usually a single layer Javascript dictionary object.
 
@@ -116,7 +116,7 @@ _acl|if set (on master) to a AccessControlList or KeyChain, defines storage as e
 _urls|Array of URLs of data stored
 table|"sd", subclasses each have their own `table` code
 
-####The callchain for storing is ...
+#### The callchain for storing is ...
 
 * p_store - store the object to the Dweb if not stored.
     * (for PublicPrivate or subclasses ) 
@@ -131,7 +131,7 @@ table|"sd", subclasses each have their own `table` code
             * ACL.encrypt - if required encrypt
         * DwebTransports.p_rawstore - store on underlying transports
     
-####And the callchain for retrieving is ...
+#### And the callchain for retrieving is ...
 
 * p_fetch
     * DwebTransports.p_rawfetch - retrieve raw data
@@ -144,7 +144,7 @@ table|"sd", subclasses each have their own `table` code
                 * _setproperties store on object
                     * __ setattr__ store a specific attribute (can convert data types in subclasses)
 
-#####new SmartDict (data, verbose, options)
+##### new SmartDict (data, verbose, options)
 Creates and initialize a new SmartDict. 
 ```
 data        String|Object, If a string (typically JSON), then pass to Transport.loads first. 
@@ -152,19 +152,19 @@ data        String|Object, If a string (typically JSON), then pass to Transport.
 options     Passed to _setproperties, by default overrides attributes set by data
 ```
 
-#####stored()
+##### stored()
 Check if stored (Note overridden in KeyValue to use a _dirty flag)
 ```
 returns True if data has been stored
 ```
 
-#####dirty()
+##### dirty()
 Mark an object as needing storing again, for example because one of its fields changed.
 Flag as dirty so needs uploading - subclasses may delete other, now invalid, info like signatures
 (Note overridden in KeyValue to use a _dirty flag)
 
 
-#####preflight(dd)
+##### preflight(dd)
 Default handler for preflight, strips attributes starting “_” and stores and converts objects to urls.
 Subclassed in AccessControlList and KeyPair to avoid storing private keys.
 When subclassing, take care for example to save attributes starting "_" before calling super.
@@ -173,7 +173,7 @@ dd        dictionary to convert..
 Returns   converted dictionary
 ```
 
-#####_getdata({ publicOnly=false, encryptIfAcl=true}={})
+##### _getdata({ publicOnly=false, encryptIfAcl=true}={})
 Prepares data for sending. Retrieves attributes, runs through preflight.
 If there is an _acl field then it passes data through it for encrypting (see AccessControl library[c])
 ```
@@ -182,7 +182,7 @@ encryptIfAcl   If the acl field is present then encrypt and return { acl, encryp
 Returns        String suitable for p_rawstore
 ```
 
-#####_setdata(value)
+##### _setdata(value)
 Stores data, subclass this if the data should be interpreted as its stored.
 ```
 value        Object, or JSON string to load into object.
@@ -258,7 +258,7 @@ The callback should return a promise.
 cb(encrypteddata, verbose) => resolves to data
 ```
 
-##List Layer
+## List Layer
 
 See [Dweb - List](https://docs.google.com/document/d/1vm-Lze_Gu6gEQUPvh-yRCayCnT82SyECOrd8co3EPfo/edit#_)
 (TODO-move material from google doc to repository.)
@@ -424,7 +424,7 @@ data:       urlsafebase64 encoded string
 returns:    Uint8Array suitable for passing to libsodium
 ```
 
-##### static b64enc(data) { //TODO-REL3-API
+##### static b64enc(data) {
 Encode arbitrary data into b64
 ```
 data:       Uint8Array (typically produced by libsodium)
@@ -539,11 +539,11 @@ resolves to:    obj - object that was signed
 raises:         AuthenticationError if can't decrypt
 ```
 
-###PublicPrivate extends SmartDict - encapsulate classes stored as public & private
+### PublicPrivate extends SmartDict - encapsulate classes stored as public & private
 PublicPrivate is a superclass for anything (except KeyPair) that is stored in both public and private
 version, this includes CommonList, KeyValueTable and their subclasses.
 
-#####Fields:
+##### Fields:
 ```
 keypair         Holds a KeyPair used to sign items
 _master         true if this is a master list, i.e. can add things
@@ -653,7 +653,7 @@ Dispatch event to any listeners of the appropriate type. Normally this is only c
 event:        Instance of CustomEvent
 ```
 
-###CommonList extends PublicPrivate - superclass for all lists
+### CommonList extends PublicPrivate - superclass for all lists
 CommonList is a superclass for anything that manages a storable list of other urls
 e.g.VersionList, KeyChain, AccessControlList
 
@@ -713,7 +713,7 @@ resolves: undefined
 ##### listmonitor (verbose) 
 Setup a callback on all valid transports, so if anything is added to this list on the Dweb it will be called. This method then deduplicates, and if the event is new will call any callback added with addEventListener() with an event of type “insert”   Note that the callback is called WITHOUT fetching the data referenced in the Sig, since it could be large, or a stream etc.
 
-###KeyValueTable - storage and retrieval of data by a key
+### KeyValueTable - storage and retrieval of data by a key
 Manages a KeyValue object intended for each field to be a separate item stored independently.
 
 ##### Fields:
@@ -815,7 +815,7 @@ Stack: KVT()|KVT.p_new => KVT.monitor => (a: Transports.monitor => YJS.monitor)(
 ### KeyValue extends SmartDict
 TODO This is incomplete, will have a interface similar to KeyValueTable
 
-##Authentication layer
+## Authentication layer
 The Authentication Layer builds on the Lists, there is a
 [Google Doc: Dweb - Authentication](https://docs.google.com/document/d/1bdcNtfJQ04Twlbef1VZAjQYLmZgpdCFDapQBoef_CGs/edit)
 describing it. 
@@ -916,7 +916,7 @@ KeyChain extends CommonList to store a users keys, MutableBlocks and AccessContr
 ```
 _keys:  Array of keys (the signed objects on the list)
 ```
-#####Class Variables
+##### Class Variables
 ```
 eventHandler - monitor events on KeyChains (TODO document which)
 keychains - list of logged in KeyChains
@@ -1153,7 +1153,16 @@ Sees it it can resolve the path in the Leaf further, because we know the type of
 ```
 path    / separated string to resolve in object
 ```
-
+##### async p_boot({remainder=undefined, search_supplied=undefined, opentarget="_self", verbose=false}={})
+Utility to display a Leaf, will probably need expanding to more kinds of media and situations via options
+Strategy depends on whether we expect relativeurls inside the HTML. 
+If do, then need to do a window.open so that URL is correct, otherwise fetch and display as a blob
+```
+remainder:       Any remainder string to send to the attribute specified in "leaf.htmlpath if specified
+search_supplied: Anything supplied after the ? in the original URL, should be added to the search string
+opentarget:      Where to open the file, defaults to "_self"
+thows:           First error encountered, if doesnt succeed with any url.
+```
 ### Domain extends KeyValueTable and mixes in NameMixin & SignatureMixin
 The Domain class is for name resolution across multiple technologies.
 
@@ -1221,7 +1230,6 @@ path            / separated path, e.g. arc/archive.org/details
 resolves to:    [ Leaf, remainder ]
 raises:         CodingError
 ```
-
 ##### async p_printable({indent="  ",indentlevel=0, maxindent=9}={}) {
 Support printable debugging
 ```
@@ -1243,7 +1251,14 @@ Look in the logged in user's keychains to see if have the private version of thi
 ```
 returns:    undefined or Domain
 ```
-
+##### static async p_resolveAndBoot(name, {verbose=false, opentarget="_self", search_supplied=undefined}={})
+Utility function for bootloader.html
+Try and resolve a name, if get a Leaf then boot it, if get another domain then try and resolve the "." and boot that.
+```
+search_supplied: Anything supplied in after the ? in the original URL, should be added to the search string
+opentarget:      Where to open the file, defaults to "_self"
+throws:          Error if cant resolve to a Leaf, or Error from loading the Leaf
+```
 ## Error classes
 Errors are implemented as classes to make it easier to check if certain kinds of errors have 
 been thrown. The current set are as below, the message is the class name, but can be overwritten in the constructor.
