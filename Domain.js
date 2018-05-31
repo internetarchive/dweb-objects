@@ -146,7 +146,7 @@ class Leaf extends SmartDict {
             opentarget: Where to open the file, defaults to "_self"
             thows:      First error encountered, if doesnt succeed with any url.
          */
-        if (["text/html"].includes(this.mimetype)) {
+        if (!this.mimetype || ["text/html"].includes(this.mimetype)) {
             //Its an HTML file, open it
             if (this.metadata.htmlusesrelativeurls) {
                 let tempurls = this.urls;
@@ -287,11 +287,13 @@ class Domain extends KeyValueTable {
         console.group("Resolving:",path);
         if (!this.root)
             await this.p_rootSet({verbose});
+        if (path.startsWith("dweb:"))
+            path = path.slice(5);
         if (path[0] === "/") {  // Path should start at root, but sometimes will be relative
             path = path.slice(1);
         }
         const res = await this.root.p_resolve(path, {verbose});
-        console.log("Resolved path",path, "to", await res[0].p_printable({maxindent: 0}), res[1] ? "remaining:" + res[1] : "");
+        console.log("Resolved path",path, "to", res[0] ? (await res[0].p_printable({maxindent: 0})) : "undefined", res[1] ? "remaining:" + res[1] : "");
         console.groupEnd();
         return res;
 
@@ -307,21 +309,6 @@ class Domain extends KeyValueTable {
         }
         if (verbose) console.log("resolving",path,"in",this.name);
         let res;
-        /*
-        // Look for path, try longest combination first, then work back to see if can find partial path
-        const pathArray = path.split('/');
-        const remainder = [];
-        while (pathArray.length > 0) {
-            const name = pathArray.join('/');
-            res = await this.p_get(name, verbose);
-            if (res) {
-                res = await SmartDict._after_fetch(res, [], verbose);  //Turn into an object
-                this.verify(name, res);                                     // Check its valid
-                break;
-            }
-            remainder.unshift(pathArray.pop());                             // Loop around on subset of path
-        }
-        */
         const remainder = path.split('/');
         const name = remainder.shift();
         res = await this.p_getMerge(name, verbose);
@@ -372,6 +359,7 @@ class Domain extends KeyValueTable {
                 "archive.org": await Domain.p_new({_acl: archiveadminkc, keychain: archiveadminkc}, true, {passphrase: pass2+"/arc/archive.org"}, verbose, [], {
                             ".": await Leaf.p_new({urls: ["https://dweb.me/examples/archive.html"], mimetype: "text/html",
                                 metadata: {htmlusesrelativeurls: true}}, verbose, {}),
+                            "about": await Leaf.p_new({urls: ["https://archive.org/about/"], metadata: {htmlpath: "/" }}, verbose, {}),
                             //TODO-ARC change these once dweb.me fixed
                             "details": await Leaf.p_new({urls: ["https://dweb.me/examples/archive.html"], mimetype: "text/html",
                                 metadata: {htmlusesrelativeurls: true, htmlpath: "item"}}, verbose,[], {}),
@@ -515,6 +503,9 @@ class Domain extends KeyValueTable {
 
         TODO - are there any cases where want to try multiple names -dont think so
          */
+        let nameandsearch = name.split('?');
+        name = nameandsearch[0]
+        if (nameandsearch.length) search_supplied = nameandsearch[1];
         let res = await this.p_rootResolve(name, {verbose});
         let resolution = res[0];
         let remainder = res[1];
