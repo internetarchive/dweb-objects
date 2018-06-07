@@ -39,7 +39,7 @@
             let obj = new DwebObjects.SmartDict(dict, verbose );
             await cl.p_push(obj, verbose);
             console.log("Added:",obj);                             // Show on the Javascript console
-            addlistresult("addlistresults", obj);                  // Display locally as listmonitor will not pick up local entries
+            addlistresult("listresults", obj);                  // Display locally as listmonitor will not pick up local entries
         } catch(err){ console.log("ERROR:",err); alert(err.message); }
         return false; // Stop form submission and page reloading reloading
     }
@@ -86,7 +86,7 @@
     }
     function addlistresult(el, obj) {
         elementFrom(el).appendChild(
-            createElement("span", {class: "said", source: obj}, say));
+            createElement("span", {class: "said", source: obj}, obj.say));
     }
     function displayobj(el, obj) {
         /* Display an obj, under an element in appropriately named fields */
