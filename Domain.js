@@ -357,16 +357,16 @@ class Domain extends KeyValueTable {
         Domain.root = await Domain.p_new({_acl: archiveadminkc, name: "", keychain: archiveadminkc}, true, {passphrase: pass2+"/"}, verbose, [], {   //TODO-NAME will need a secure root key
             arc: await Domain.p_new({_acl: archiveadminkc, keychain: archiveadminkc},true, {passphrase: pass2+"/arc"}, verbose, [], { // /arc domain points at our top level resolver.
                 "archive.org": await Domain.p_new({_acl: archiveadminkc, keychain: archiveadminkc}, true, {passphrase: pass2+"/arc/archive.org"}, verbose, [], {
-                            ".": await Leaf.p_new({urls: ["https://dweb.me/examples/archive.html"], mimetype: "text/html",
+                            ".": await Leaf.p_new({urls: ["https://dweb.me/archive/archive.html"], mimetype: "text/html",
                                 metadata: {htmlusesrelativeurls: true}}, verbose, {}),
                             "about": await Leaf.p_new({urls: ["https://archive.org/about/"], metadata: {htmlpath: "/" }}, verbose, {}),
                             //TODO-ARC change these once dweb.me fixed
-                            "details": await Leaf.p_new({urls: ["https://dweb.me/examples/archive.html"], mimetype: "text/html",
+                            "details": await Leaf.p_new({urls: ["https://dweb.me/archive/archive.html"], mimetype: "text/html",
                                 metadata: {htmlusesrelativeurls: true, htmlpath: "item"}}, verbose,[], {}),
-                            "images": await Leaf.p_new({urls: ["https://dweb.me/examples/images/"], metadata: {htmlpath: "/" }}, verbose, {}),
+                            "images": await Leaf.p_new({urls: ["https://dweb.me/archive/images/"], metadata: {htmlpath: "/" }}, verbose, {}),
                             "serve": await Leaf.p_new({urls: ["https://dweb.archive.org/download/"], metadata: {htmlpath: "/" }}, verbose, {}), // Example is in commute.description
                             "metadata": await Domain.p_new({_acl: archiveadminkc, keychain: archiveadminkc}, true, {passphrase: pass2+"/arc/archive.org/metadata"}, verbose, [metadataGateway], {}),
-                            "search.php": await Leaf.p_new({urls: ["https://dweb.me/examples/archive.html"], mimetype: "text/html",
+                            "search.php": await Leaf.p_new({urls: ["https://dweb.me/archive/archive.html"], mimetype: "text/html",
                                 metadata: {htmlusesrelativeurls: true, htmlpath: "path"}}, verbose, {})
                             //Note I was seeing a lock error here, but cant repeat now - commenting out one of these last two lines seemed to clear it.
                 })
