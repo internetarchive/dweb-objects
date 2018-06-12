@@ -39,7 +39,7 @@ async function p_test(verbose) {
     try {
         //SEE-OTHER-ADDTRANSPORT - note these are options just for testing that override default options for the transport.
         let opts = {
-            http: {urlbase: "http://localhost:4244"},   // Localhost - comment out if want to use gateway.dweb.me (default args use this)
+            http: {urlbase: "http://localhost:4244"},   // Localhost - comment out if want to use dweb.me (default args use this)
             yarray: {db: {name: "leveldb", dir: "../dbtestjs", cleanStart: true, connector: {}}},  // Cleanstart clears db
             webtorrent: {}
         }; // Note browser requires indexeddb
@@ -69,7 +69,7 @@ async function p_test(verbose) {
         verbose=true;
         let t = DwebTransports.http();
         turlbaseold = t.urlbase;
-        t.urlbase = "https://gateway.dweb.me:443";  // Switchc to real gateway to test resolution
+        t.urlbase = "https://dweb.me:443";  // Switch to real gateway to test resolution
         await Domain.p_test_gateway(verbose);
         t.urlbase = turlbaseold;
         console.log("------END OF NEW TESTING PAUSING=====");

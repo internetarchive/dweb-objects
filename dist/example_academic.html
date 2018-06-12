@@ -45,7 +45,7 @@
 
         function p_submit_searchbox_gateway(dict) {
             //TODO-ACADEMIC switch to TransportHTTP, and merge this pattern into TransportHTTP or move to miscutils.js.httpget()
-            let url = `https://gateway.dweb.me:443/metadata/${dict.namespace}/${dict.name}?verbose=1`;
+            let url = `https://dweb.me:443/metadata/${dict.namespace}/${dict.name}?verbose=1`;
             console.log("p_submit_searchbox: ---", dict, "fetching", url);
             return p_httpget(url)
                 .catch((err) => {
@@ -61,7 +61,7 @@
             j.files.map((f) => {
                 f.ipldurl = `https://ipfs.dweb.me:443/ipfs/${f.ipldhash}`;
                 f.ipld2url = `https://ipfs.io:443/ipfs/${f.ipldhash}`;
-                f.multihash58url = `https://gateway.dweb.me:443/content/contenthash/${f.multihash58}`;
+                f.multihash58url = `https://dweb.me:443/contenthash/${f.multihash58}`;
             })
             replacetexts("metadataresults", j, {authors: authors});
             show("metadataresults");
@@ -332,7 +332,7 @@
     var verbose = searchparms.get("verbose") || false;  // Anything specified for verbose is true (could truthify buy no need)
     /* Select transport - ?transport=HTTP to use HTTP*/
     // Add a function to htmlutils to simplify this.
-    // Dweb.TransportIPFS.p_setup({http: { ipandport:["gateway.dweb.me", 443]}}, verbose)
+    // Dweb.TransportIPFS.p_setup({http: { ipandport:["dweb.me", 443]}}, verbose)
     //    .then((t) => t.p_status())
     //    .then((msg) => alert(msg))  //TODO-status as list
     //    .catch((err) => { console.log("ERROR in connecting to HTTP:",err); alert(err.message); });

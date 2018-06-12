@@ -334,7 +334,7 @@ class Domain extends KeyValueTable {
     }
     static async p_setupOnce({verbose=false} = {}) {
         //const metadatagateway = 'http://localhost:4244/leaf/archiveid';
-        //const metadataGateway = 'https://gateway.dweb.me/leaf/archiveid';
+        //const metadataGateway = 'https://dweb.me/leaf/archiveid';
         const metadataGateway = 'https://dweb.archive.org/leaf';
         //TODO-NAMING change passphrases to something secret, figure out what need to change
         const pass1 = "all knowledge for all time to everyone for free"; // TODO-NAMING make something secret
@@ -485,8 +485,8 @@ class Domain extends KeyValueTable {
             Domain.root = undefined; // Clear out test root
             if (verbose) console.log("NAMES connected");
             let res = await this.p_resolveNames(["dweb:/arc/archive.org/metadata/commute"], {verbose});
-            //console.assert(res.includes("https://gateway.dweb.me/metadata/archiveid/commute"))
-            console.assert(res.includes("https://gateway.dweb.me/arc/archive.org/metadata/commute"));
+            //console.assert(res.includes("https://dweb.me/metadata/archiveid/commute"))
+            console.assert(res.includes("https://dweb.me/arc/archive.org/metadata/commute"));
         } catch(err) {
             console.log("Exception thrown in Domain.p_test_gateway:", err.message);
             throw err;
