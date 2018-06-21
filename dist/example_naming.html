@@ -75,9 +75,9 @@
                                 createElement("span", {class: "propname"}, "URLs"),
                                 createElement("ul", {class: "proplist"}, dom.urls.map((url) =>
                                     createElement("a", {href: url}, url)))) : undefined,
-                            dom.tables ? createElement("li", {},
+                            dom.tablepublicurls ? createElement("li", {},
                                 createElement("span", {class: "propname"}, "Tables"),
-                                createElement("ul", {class: "proplist"}, dom.tables.map((key) =>
+                                createElement("ul", {class: "proplist"}, dom.tablepublicurls.map((key) =>
                                     createElement("li", {}, key)))) : undefined,
                             _createElementNameAndValue("Mimetype", dom.mimetype),
                             _createElementNameAndValue("Metadata", JSON.stringify(dom.metadata))))
@@ -119,7 +119,6 @@
             }
             for (let x of el.childNodes) {
                 if (x.tagName === "LI") {
-                    console.log("XXX@152",x.source);
                     const src = x.source;
                     const span = x.firstChild;    // Will be a span, but dont really care, this is where we add the class cos cant overload LI
                     if (src instanceof DwebObjects.Domain && src.privateFromKeyChain()) {
