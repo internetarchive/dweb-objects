@@ -96,7 +96,7 @@ class KeyValueTable extends PublicPrivate {
             throw(err);
         }
     }
-    preflight(dd) {  //TODO could generalize this to a list of fields to be deleted on non-master versions
+    preflight(dd) {
         let master = dd._master; //Save before super.preflight
         dd = super.preflight(dd);  // Edits dd in place, in particular deletes anything starting with _
         if (! master) {
@@ -127,7 +127,6 @@ class KeyValueTable extends PublicPrivate {
             // The typical scenario is that a p_set causes a monitor event back on same machine, but value is the public version
             this._map[name] = value;
         }
-        //TODO_KEYVALUE copy semantics from __setattr_ for handling Dates, maybe other types
     }
     _updatemap(res) {
         Object.keys(res).map(key => { try { this._map[key] = this._mapFromStorage(res[key])} catch(err) { console.log("Not updating",key)} } );
@@ -160,7 +159,7 @@ class KeyValueTable extends PublicPrivate {
         if (Array.isArray(keys)) {
             const res = {};
             const self = this;
-            await Promise.all(keys.map((n) => { res[n] = self.p_get(n, verbose)}));
+            await Promise.all(keys.map((n) => { res[n] = self.p_getMerge(n, verbose)}));    // this was p_get but that looked wrong, changed to p_getMerge
             return res;
         }
         if (this._map[keys])
