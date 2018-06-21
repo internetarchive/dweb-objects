@@ -117,8 +117,8 @@ class KeyValueTable extends PublicPrivate {
 
          */
         // Subclased in Domain to avoid overwriting private version with public version from net
-        //TODO-KEYVALUE these sets need to be signed if the transport overwrites the previous, rather than appending
-        //TODO-KEYVALUE the difference is that if appended, then an invalid signature (if reqd) in the value would cause it to be discarded.
+        //TODO-KEYVALUE-SIGN these sets need to be signed if the transport overwrites the previous, rather than appending see dweb-objects/issue#2
+        //TODO-KEYVALUE-SIGN the difference is that if appended, then an invalid signature (if reqd) in the value would cause it to be discarded. see dweb-objects/issue#2
         if (this._autoset && !fromNet && (this._map[name] !== value)) {
             await DwebTransports.p_set(this.tableurls, name, this._storageFromMap(value, {publicOnly, encryptIfAcl}), {verbose}); // Note were not waiting for result but have to else hit locks
         }
@@ -168,7 +168,7 @@ class KeyValueTable extends PublicPrivate {
             .map(r => this._mapFromStorage(r))
         // Errors in above will result in an undefined in the res array, which will be filtered out.
         // res is now an array of returned values in same order as tablepublicurls
-        //TODO-NAME should verify here before do this test but note Python gateway is still using FAKEFAKEFAKE as a signature
+        //TODO-NAME TODO-KEYVALUE-SIGN should verify here before do this test but note Python gateway is still using FAKEFAKEFAKE as a signature see dweb-objects/issue#2
         const indexOfMostRecent = rr.reduce((iBest, r, i, arr) => (r && r.signatures[0].date) > (arr[iBest] || "" && arr[iBest].signatures[0].date) ? i : iBest, 0);
         //TODO-NAME save best results to others.
         const value = rr[indexOfMostRecent];
