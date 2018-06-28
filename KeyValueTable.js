@@ -96,7 +96,7 @@ class KeyValueTable extends PublicPrivate {
             throw(err);
         }
     }
-    preflight(dd) {  //TODO could generalize this to a list of fields to be deleted on non-master versions
+    preflight(dd) {
         let master = dd._master; //Save before super.preflight
         dd = super.preflight(dd);  // Edits dd in place, in particular deletes anything starting with _
         if (! master) {
@@ -117,8 +117,8 @@ class KeyValueTable extends PublicPrivate {
 
          */
         // Subclased in Domain to avoid overwriting private version with public version from net
-        //TODO-KEYVALUE these sets need to be signed if the transport overwrites the previous, rather than appending
-        //TODO-KEYVALUE the difference is that if appended, then an invalid signature (if reqd) in the value would cause it to be discarded.
+        //TODO-KEYVALUE-SIGN these sets need to be signed if the transport overwrites the previous, rather than appending see dweb-objects/issue#2
+        //TODO-KEYVALUE-SIGN the difference is that if appended, then an invalid signature (if reqd) in the value would cause it to be discarded. see dweb-objects/issue#2
         if (this._autoset && !fromNet && (this._map[name] !== value)) {
             await DwebTransports.p_set(this.tableurls, name, this._storageFromMap(value, {publicOnly, encryptIfAcl}), {verbose}); // Note were not waiting for result but have to else hit locks
         }
@@ -127,7 +127,6 @@ class KeyValueTable extends PublicPrivate {
             // The typical scenario is that a p_set causes a monitor event back on same machine, but value is the public version
             this._map[name] = value;
         }
-        //TODO_KEYVALUE copy semantics from __setattr_ for handling Dates, maybe other types
     }
     _updatemap(res) {
         Object.keys(res).map(key => { try { this._map[key] = this._mapFromStorage(res[key])} catch(err) { console.log("Not updating",key)} } );
@@ -160,7 +159,7 @@ class KeyValueTable extends PublicPrivate {
         if (Array.isArray(keys)) {
             const res = {};
             const self = this;
-            await Promise.all(keys.map((n) => { res[n] = self.p_get(n, verbose)}));
+            await Promise.all(keys.map((n) => { res[n] = self.p_getMerge(n, verbose)}));    // this was p_get but that looked wrong, changed to p_getMerge
             return res;
         }
         if (this._map[keys])
@@ -169,7 +168,7 @@ class KeyValueTable extends PublicPrivate {
             .map(r => this._mapFromStorage(r))
         // Errors in above will result in an undefined in the res array, which will be filtered out.
         // res is now an array of returned values in same order as tablepublicurls
-        //TODO-NAME should verify here before do this test but note Python gateway is still using FAKEFAKEFAKE as a signature
+        //TODO-NAME TODO-KEYVALUE-SIGN should verify here before do this test but note Python gateway is still using FAKEFAKEFAKE as a signature see dweb-objects/issue#2
         const indexOfMostRecent = rr.reduce((iBest, r, i, arr) => (r && r.signatures[0].date) > (arr[iBest] || "" && arr[iBest].signatures[0].date) ? i : iBest, 0);
         //TODO-NAME save best results to others.
         const value = rr[indexOfMostRecent];
