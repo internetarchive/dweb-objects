@@ -158,6 +158,7 @@ class Leaf extends SmartDict {
                     try {
                         if (remainder) url.search = url.search + (url.search ? '&' : "") + `${pathatt}=${remainder}`;
                         if (search_supplied) url.search = url.search + (url.search ? '&' : "") + search_supplied;
+                        if (verbose) url.search = url.search + (url.search ? '&' : "") + 'verbose=true';
                         if (verbose) console.log("Bootstrap loading url:", url.href);
                         window.open(url.href, opentarget); //if opentarget is blank then I think should end this script.
                         return; // Only try and open one - bypasses error throwing
