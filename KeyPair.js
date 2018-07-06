@@ -43,6 +43,7 @@ class KeyPair extends SmartDict {
 
          :param name:   String - name of field to set, if "key" then imports, else to SmartDict.__setattr__
          :param value:  Any - stored in field, for key can be urlsafebase64 string, or Uint8Array, or dict in libsodium format above.
+        #Backported to PY 20180703
          */
         let verbose = false;
         if (name === "key") {
@@ -65,6 +66,7 @@ class KeyPair extends SmartDict {
             passphrase: A phrase to hash to get a seed
             keygen:     true to generate a new key
             seed:       32 byte string or buffer
+        #Backported to PY 20180703
          */
         let verbose = false;
         if (verbose) console.log("KP._key_setter");
@@ -166,6 +168,7 @@ class KeyPair extends SmartDict {
         :param keytype: One of KeyPair.KEYTYPExyz to specify type of key wanted
         :returns:       Dict suitable for storing in _key
          */
+        //Backported to PY 20180703
         let key = {};
         if (sodium.crypto_box_SEEDBYTES !== seed.length) throw new errors.CodingError(`Seed should be ${sodium.crypto_box_SEEDBYTES}, but is ${seed.length}`);
         key.seed = seed;
@@ -187,7 +190,8 @@ class KeyPair extends SmartDict {
 
         :param value: "xyz:1234abc" where xyz is one of "NACL PUBLIC, NACL SEED, NACL VERIFY" and 1234bc is a ursafebase64 string
                     Note NACL PRIVATE, NACL SIGNING,  are not yet supported as "NACL SEED" is exported
-         */
+         #Backported to PY 20180703
+        */
         //First tackle standard formats created by exporting functionality on keys
         // Call route is ... data.setter > ...> key.setter > _importkey
         //TODO-BACKPORT - Note fingerprint different from Python - this stores the key, change the Python
@@ -313,6 +317,8 @@ class KeyPair extends SmartDict {
 
         :param signable: A signable string
         :return: signature that can be verified with verify
+
+        Backported to Python 20180703
         */
         if (!signable) throw new errors.CodingError("Needs signable");
         if (! this._key.sign.privateKey) {
@@ -330,6 +336,8 @@ class KeyPair extends SmartDict {
 
         :param date, url: date (ISO string) and url exactly as signed.
         :param urlb64sig: urlsafebase64 encoded signature
+
+        Backported to Python 20180703
          */
 
         let sig = sodium.from_urlsafebase64(urlb64sig);

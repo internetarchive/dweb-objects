@@ -26,6 +26,7 @@ const SignatureMixin = function(fieldlist) {
         this.signatures = this.signatures || [];
     };
     this._signable = function(date) {
+        // Note that any of these fields which are undefined will not be in the signable string since JSON.stringify will remove them
         return JSON.stringify({"date": date, signed: utils.keyFilter(this, this.__proto__.fieldlist)});
     };
     this._signSelf = function(keypair) { // Pair of verify
@@ -38,12 +39,25 @@ const SignatureMixin = function(fieldlist) {
             signedby: keypair.signingexport()
         })
     };
+    this._verifySig = function(sig) {
+        /*
+        Returns:    true if matches, else false
+         */
+        //(sig.signature === "FAKEFAKEFAKE") ||    // TODO=DOMAIN obviously this is faking verification while testing gateway to archive metadata
+        try {
+            return new KeyPair({key: sig.signedby}).verify(this._signable(sig.date), sig.signature);    // Throws SigningError
+        } catch(err) {
+            console.warn("Invalid signature", err);
+            return false;
+
+        }
+    }
+
     this._verifyOwnSigs = function() { // Pair of sign
         // Return an array of keys that signed this match, caller should check it accepts those keys
         console.debug("WARNING - faking signature verification while testing gateway to archive metadata")
         return this.signatures
-            .filter(sig => ( sig.signature === "FAKEFAKEFAKE"  ||       // TODO=DOMAIN obviously this is faking verification while testing gateway to archive metadata
-                new KeyPair({key: sig.signedby}).verify(this._signable(sig.date), sig.signature)))
+            .filter(sig => this._verifySig(sig))
             .map(sig => sig.signedby);
     };
 
@@ -184,7 +198,7 @@ class Leaf extends SmartDict {
 
 }
 NameMixin.call(Leaf.prototype);
-SignatureMixin.call(Leaf.prototype, ["urls", "name", "expires"]);
+SignatureMixin.call(Leaf.prototype, ["expires", "name", "urls"]);   // Probably need to be in alphabetic order
 SmartDict.table2class["leaf"] = Leaf;
 
 class Domain extends KeyValueTable {
@@ -280,7 +294,8 @@ class Domain extends KeyValueTable {
     static async p_rootSet( {verbose=false}={}){
         //TODO-CONFIG put this (and other TODO-CONFIG into config file)
         // [ "contenthash:/contenthash/QmRgvjFsRMNAGstAUZUcBxYsg6zejHFEZfcFzvzV6osPyF" ]; // Prior to 2018-05-22
-        const rootpublicurls = [ 'contenthash:/contenthash/QmRiVND6Ct23jekiS7gA5toD4T7F7RZZ37DzHwzKuhdaN7' ]; // As of 2018-05-22
+        //const rootpublicurls = [ 'contenthash:/contenthash/QmRiVND6Ct23jekiS7gA5toD4T7F7RZZ37DzHwzKuhdaN7' ]; // As of 2018-05-22
+        const rootpublicurls = [ 'contenthash:/contenthash/QmVFh13MW42ksJCCj73SGS5MzKggeyu1DmxsvteDnJPkmk' ]; // As of 2018-07-05
         this.root = await SmartDict.p_fetch(rootpublicurls,  {verbose, timeoutMS: 5000});
     }
 
@@ -364,6 +379,7 @@ class Domain extends KeyValueTable {
                             //TODO-ARC change these once dweb.me fixed
                             "details": await Leaf.p_new({urls: ["https://dweb.me/archive/archive.html"], mimetype: "text/html",
                                 metadata: {htmlusesrelativeurls: true, htmlpath: "item"}}, verbose,[], {}),
+                            "examples": await Leaf.p_new({urls: ["https://dweb.me/archive/examples/"], metadata: {htmlpath: "/" }}, verbose, {}),
                             "images": await Leaf.p_new({urls: ["https://dweb.me/archive/images/"], metadata: {htmlpath: "/" }}, verbose, {}),
                             "serve": await Leaf.p_new({urls: ["https://dweb.archive.org/download/"], metadata: {htmlpath: "/" }}, verbose, {}), // Example is in commute.description
                             "metadata": await Domain.p_new({_acl: archiveadminkc, keychain: archiveadminkc}, true, {passphrase: pass2+"/arc/archive.org/metadata"}, verbose, [metadataGateway], {}),

@@ -30,7 +30,7 @@
                 el_li.classList.remove("fa-folder");
                 el_li.classList.add("fa-folder-open");
                 for (let k of Object.keys(kids).sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()))) {
-                    addsubdomain(el_ul, k, kids[k]);
+                    addsubdomain(el_ul, k, kids[k], dom);
                 }
             } else if (el_li.classList.contains("expanded")) {
                 el_li.classList.remove("expanded");
@@ -64,7 +64,7 @@
                             dom.signatures ? createElement("li", {},
                                 createElement("span", {class: "propname"}, "Signatures"),
                                 createElement("ul", {class: "proplist"}, dom.signatures.map((sig) =>
-                                    createElement("li", {},
+                                    createElement("li", {class: `propsig ${dom._verifySig(sig) ? "" : "bad"}`},
                                         sig.date,
                                         createElement("br"),
                                         sig.signedby,
@@ -83,9 +83,10 @@
                             _createElementNameAndValue("Metadata", JSON.stringify(dom.metadata))))
                 } else throw new Error("Cant show details for table="+dom.table);
         }
-        function addsubdomain(el, name, dom) {
+        function addsubdomain(el, name, dom, parent) {
             // el should be a ul to add newly created nodes to
-            const el_name = createElement("span", {class: `naming_name ${(dom instanceof DwebObjects.Domain && dom.privateFromKeyChain()) ? "fa-unlock" : ""}`}, " ", name);
+            const el_name = createElement("span", {class: `naming_name ${(dom instanceof DwebObjects.Domain && dom.privateFromKeyChain()) ? "fa-unlock" : ""} `}, " ", name);
+            if (parent && !parent.verify(name, dom)) el_name.classList.add("bad");
             const el_ul = createElement("ul", {});
             const fa_icon = {"domain": "fa-folder", "leaf": "fa-leaf"}[dom.table] || "fa-question";
             const expandable = ["domain"].includes(dom.table);
@@ -147,7 +148,7 @@
                 await DwebObjects.Domain.p_rootSet({verbose});
                 console.log("==Login should have finished-== output after here implies async issue ===");
                 let el_root_ul = document.getElementById("treeroot_ul");
-                addsubdomain(el_root_ul, "/", DwebObjects.Domain.root);
+                addsubdomain(el_root_ul, "/", DwebObjects.Domain.root, undefined);
             } catch(err) { // Catch any uncaught errors here, log and alert.
                 console.log("App Error:", err);
                 alert(err.message);
@@ -169,7 +170,8 @@
         .propname { display: inline-block; background-color: inherit; border: none; vertical-align: top; }
         .propval, .proplist {display: inline-block; background-color: inherit; border: none;}
         .proplist {padding-left: 0px;}
-
+        .propsig {font-size: smaller}
+        .bad {color: red;}
     </style>
 
 </head>
