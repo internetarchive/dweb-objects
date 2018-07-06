@@ -4,7 +4,7 @@ const utils = require('./utils'); // Utility functions
 
 class SmartDict {
     /*
-    Subclass of Transport that stores a data structure, usually a single layer Javascript dictionary object.
+    Stores a data structure, usually a single layer Javascript dictionary object.
     SmartDict is intended to support the mechanics of storage and retrieval while being  subclassed to implement functionality
     that understands what the data means.
 
