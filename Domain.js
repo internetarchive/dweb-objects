@@ -412,7 +412,7 @@ class Domain extends KeyValueTable {
             const res = await Domain.p_rootResolve(name, {verbose});     // [ Leaf object, remainder ] //TODO-NAME see comments in p_rootResolve about FAKEFAKEFAKE
             //if (!(res[0] && (res[0].name === name.split('/').splice(-1)[0]) && !res[1])) {   // checks /aaa/bbb/ccc resolved to something with name=ccc and no remainder
             if (!(res[0] && !res[1])) {   // checks /aaa/bbb/ccc resolved to something with name=ccc and no remainder
-                return undefined
+                return [];  // No urls
             } else {
                 return res[0].urls;
             }
