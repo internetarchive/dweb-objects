@@ -710,8 +710,11 @@ sig:      Signature to add
 resolves: undefined
 ```
 
-##### listmonitor (verbose) 
+##### listmonitor ({verbose, current}) 
 Setup a callback on all valid transports, so if anything is added to this list on the Dweb it will be called. This method then deduplicates, and if the event is new will call any callback added with addEventListener() with an event of type “insert”   Note that the callback is called WITHOUT fetching the data referenced in the Sig, since it could be large, or a stream etc.
+```
+current     if true, return existing as well as new entries
+```
 
 ### KeyValueTable - storage and retrieval of data by a key
 Manages a KeyValue object intended for each field to be a separate item stored independently.
@@ -807,10 +810,14 @@ Delete the key from the map and on the net
 fromNet        Only delete locally - this request came from the net
 ```
 
-##### monitor(verbose)
+##### monitor({verbose, current})
+TODO - note this doesnt yet support the current flag from Transports.monitor
 Add a monitor for each transport - note this means if multiple transports support it, then will get duplicate events back if everyone else is notifying all of them.
 Note monitor() is synchronous, so it cannot do asynchronous things like connecting to the underlying transport
 Stack: KVT()|KVT.p_new => KVT.monitor => (a: Transports.monitor => YJS.monitor)(b: dispatchEvent)
+```
+current     if true, return existing as well as new entries
+```
 
 ### KeyValue extends SmartDict
 TODO This is incomplete, will have a interface similar to KeyValueTable
