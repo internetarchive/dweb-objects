@@ -40,7 +40,7 @@ async function p_test(verbose) {
         //SEE-OTHER-ADDTRANSPORT - note these are options just for testing that override default options for the transport.
         let opts = {
             http: {urlbase: "http://localhost:4244"},   // Localhost - comment out if want to use dweb.me (default args use this)
-            yarray: {db: {name: "leveldb", dir: "../dbtestjs", cleanStart: true, connector: {}}},  // Cleanstart clears db
+            yjs: {db: {name: "leveldb", dir: "../dbtestjs", cleanStart: true, connector: {}}},  // Cleanstart clears db
             webtorrent: {}
         }; // Note browser requires indexeddb
 

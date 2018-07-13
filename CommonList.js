@@ -93,8 +93,9 @@ class CommonList extends PublicPrivate {
          :resolves: list of objects signed and added to the list
         */
         try {
+            //TODO-GUN this should probably instead use listmonitor({current: true}) to get existing items more efficiently in GUN
             await this.p_fetchlist(verbose);
-            this.listmonitor(verbose);  // Track any future objects  - will call event Handler on any added
+            this.listmonitor({verbose});  // Track any future objects  - will call event Handler on any added
             return (await Promise.all(
                 Signature.filterduplicates(this._list) // Dont load multiple copies of items on list (might need to be an option?)
                     .map((sig) => sig.p_fetchdata({verbose, ignoreerrors}))))
@@ -168,7 +169,7 @@ class CommonList extends PublicPrivate {
 
     // ----- Listener interface ----- see https://developer.mozilla.org/en-US/docs/Web/API/EventTarget for the pattern
 
-    listmonitor(verbose) {
+    listmonitor({verbose=false, current=false}={}) {
         /*
         Add a listmonitor for each transport - note this means if multiple transports support it, then will get duplicate events back if everyone else is notifying all of them.
          */
@@ -186,7 +187,7 @@ class CommonList extends PublicPrivate {
                     } else {
                         console.log("Rejected signature: ",sig);
                     }
-                }, {verbose});
+                }, {verbose, current});
     }
 }
 SmartDict.table2class["cl"] = CommonList;

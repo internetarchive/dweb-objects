@@ -200,7 +200,7 @@ class KeyValueTable extends PublicPrivate {
     //get(name, default) cant be defined as overrides this.get()
 
     // ----- Listener interface ----- see https://developer.mozilla.org/en-US/docs/Web/API/EventTarget for the pattern
-    monitor(verbose) {
+    monitor({verbose=false, current=false}={}) {
         /*
         Add a monitor for each transport - note this means if multiple transports support it, then will get duplicate events back if everyone else is notifying all of them.
         Note monitor() is synchronous, so it cant do asynchronous things like connecting to the underlying transport
@@ -222,7 +222,7 @@ class KeyValueTable extends PublicPrivate {
                 }
                 this.dispatchEvent(new CustomEvent(event.type, {target: this, detail: event}));   // Pass event on to application after updating local object
             },
-            verbose);
+            {verbose, current});
     }
 
     static async p_test(verbose) {
