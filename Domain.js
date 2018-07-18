@@ -7,6 +7,7 @@ const KeyValueTable = require("./KeyValueTable"); //for extends
 const KeyChain = require('./KeyChain'); // Hold a set of keys, and locked objects
 const AccessControlList = require('./AccessControlList');
 
+const rootSetPublicUrls =  [ 'contenthash:/contenthash/QmVFh13MW42ksJCCj73SGS5MzKggeyu1DmxsvteDnJPkmk' ];
 //Mixins based on https://javascriptweblog.wordpress.com/2011/05/31/a-fresh-look-at-javascript-mixins/
 
 const SignatureMixin = function(fieldlist) {
@@ -293,9 +294,7 @@ class Domain extends KeyValueTable {
 
     static async p_rootSet( {verbose=false}={}){
         //TODO-CONFIG put this (and other TODO-CONFIG into config file)
-        // [ "contenthash:/contenthash/QmRgvjFsRMNAGstAUZUcBxYsg6zejHFEZfcFzvzV6osPyF" ]; // Prior to 2018-05-22
-        //const rootpublicurls = [ 'contenthash:/contenthash/QmRiVND6Ct23jekiS7gA5toD4T7F7RZZ37DzHwzKuhdaN7' ]; // As of 2018-05-22
-        const rootpublicurls = [ 'contenthash:/contenthash/QmVFh13MW42ksJCCj73SGS5MzKggeyu1DmxsvteDnJPkmk' ]; // As of 2018-07-05
+        const rootpublicurls =rootSetPublicUrls; // As of 2018-07-05 .. 2018-07-17
         this.root = await SmartDict.p_fetch(rootpublicurls,  {verbose, timeoutMS: 5000});
     }
 
@@ -383,6 +382,8 @@ class Domain extends KeyValueTable {
                             "images": await Leaf.p_new({urls: ["https://dweb.me/archive/images/"], metadata: {htmlpath: "/" }}, verbose, {}),
                             "serve": await Leaf.p_new({urls: ["https://dweb.archive.org/download/"], metadata: {htmlpath: "/" }}, verbose, {}), // Example is in commute.description
                             "metadata": await Domain.p_new({_acl: archiveadminkc, keychain: archiveadminkc}, true, {passphrase: pass2+"/arc/archive.org/metadata"}, verbose, [metadataGateway], {}),
+                            //"temp": await Leaf.p_new({urls: ["https://dweb.archive.org/metadata/"], metadata: {htmlpath: "/" }}, verbose, {}),
+                            "temp": await Leaf.p_new({urls: ["gun:/gun/arc/archive.org/metadata/"], metadata: {htmlpath: "/" }}, verbose, {}),
                             "search.php": await Leaf.p_new({urls: ["https://dweb.me/archive/archive.html"], mimetype: "text/html",
                                 metadata: {htmlusesrelativeurls: true, htmlpath: "path"}}, verbose, {})
                             //Note I was seeing a lock error here, but cant repeat now - commenting out one of these last two lines seemed to clear it.
@@ -390,7 +391,7 @@ class Domain extends KeyValueTable {
             })
         }); //root
         const testing = Domain.root.tablepublicurls.map(u => u.includes("localhost")).includes(true);
-        console.log("Domain.root publicurls for",testing ? "testing:" : "inclusion in Domain.js:p_rootSet():",Domain.root._publicurls);
+        console.log(testing ? "publicurls for testing" : "Put these Domain.root public urls in const rootSetPublicUrls", Domain.root._publicurls);
         const metadatatableurl = Domain.root._map["arc"]._map["archive.org"]._map["metadata"].tablepublicurls.find(u=>u.includes("getall/table"))
         if (!testing) {
             console.log("Put this in gateway config.py config.domains.metadata:", metadatatableurl);
