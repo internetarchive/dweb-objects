@@ -388,6 +388,8 @@ class Domain extends KeyValueTable {
                     "images": await Leaf.p_new({urls: ["https://dweb.me/archive/images/"], metadata: {htmlpath: "/" }}, verbose, {}),
                     "serve": await Leaf.p_new({urls: ["https://dweb.archive.org/download/"], metadata: {htmlpath: "/" }}, verbose, {}), // Example is in commute.description
                     "metadata": await Domain.p_new({_acl: archiveadminkc, keychain: archiveadminkc}, true, {passphrase: pass2+"/arc/archive.org/metadata"}, verbose, [metadataGateway], {}),
+                            //"temp": await Leaf.p_new({urls: ["https://dweb.archive.org/metadata/"], metadata: {htmlpath: "/" }}, verbose, {}),
+                            "temp": await Leaf.p_new({urls: ["gun:/gun/arc/archive.org/metadata/"], metadata: {htmlpath: "/" }}, verbose, {}),
                     "search.php": await Leaf.p_new({urls: ["https://dweb.me/archive/archive.html"], mimetype: "text/html",
                         metadata: {htmlusesrelativeurls: true, htmlpath: "path"}}, verbose, {})
                     //Note I was seeing a lock error here, but cant repeat now - commenting out one of these last two lines seemed to clear it.
