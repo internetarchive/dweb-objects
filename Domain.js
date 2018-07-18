@@ -151,7 +151,7 @@ class Leaf extends SmartDict {
             throw new errors.ResolutionError(err.message);
         }
     }
-    async p_boot(openChrome=false,id=undefined,{remainder=undefined, search_supplied=undefined, opentarget="_self", verbose=false}={}) { //TODO-API
+    async p_boot({remainder=undefined, search_supplied=undefined, opentarget="_self", openChromeTab = undefined, verbose=false}={}) { //TODO-API
         /*
             Utility to display a Leaf, will probably need expanding to more kinds of media and situations via options
             Strategy depends on whether we expect relativeurls inside the HTML. If do, then need to do a window.open so that URL is correct, otherwise fetch and display as a blob
@@ -175,12 +175,11 @@ class Leaf extends SmartDict {
                         if (search_supplied) url.search = url.search + (url.search ? '&' : "") + search_supplied;
                         if (verbose) url.search = url.search + (url.search ? '&' : "") + 'verbose=true';
                         if (verbose) console.log("Bootstrap loading url:", url.href);
-                        //window.open(url.href, opentarget); //if opentarget is blank then I think should end this script.
-                        if(openChrome==true){
+                        if(openChromeTab){
                             console.log("URL to load is "+url.href);
-                            chrome.tabs.update(id,{url:url.href}, function(){});
+                            chrome.tabs.update(openChromeTab, {url:url.href}, function(){});
                         }else{
-                            window.open(url.href, opentarget);
+                            window.open(url.href, opentarget); //if opentarget is blank then I think should end this script.
                         }
                         return; // Only try and open one - bypasses error throwing
                     } catch(err) {
@@ -396,7 +395,7 @@ class Domain extends KeyValueTable {
             })
         }); //root
         const testing = Domain.root.tablepublicurls.map(u => u.includes("localhost")).includes(true);
-        console.log("Domain.root publicurls for",testing ? "testing:" : "inclusion in Domain.js:p_rootSet():",Domain.root._publicurls);
+        console.log(testing ? "publicurls for testing" : "Put these Domain.root public urls in const rootSetPublicUrls", Domain.root._publicurls);
         const metadatatableurl = Domain.root._map["arc"]._map["archive.org"]._map["metadata"].tablepublicurls.find(u=>u.includes("getall/table"))
         if (!testing) {
             console.log("Put this in gateway config.py config.domains.metadata:", metadatatableurl);
@@ -516,7 +515,7 @@ class Domain extends KeyValueTable {
         }
     }
 
-    static async p_resolveAndBoot(name,openChrome=false,id=undefined, {verbose=false, opentarget="_self", search_supplied=undefined}={}) {
+    static async p_resolveAndBoot(name, {verbose=false, opentarget="_self", search_supplied=undefined, openChromeTab=undefined}={}) {
         /*
         Utility function for bootloader.html
         Try and resolve a name, if get a Leaf then boot it, if get another domain then try and resolve the "." and boot that.
@@ -533,13 +532,13 @@ class Domain extends KeyValueTable {
         let resolution = res[0];
         let remainder = res[1];
         if (resolution instanceof Leaf) {
-            await resolution.p_boot(openChrome,id,{remainder, search_supplied, opentarget, verbose}); // Throws error if fails
+            await resolution.p_boot({remainder, search_supplied, opentarget, openChromeTab, verbose}); // Throws error if fails
         } else if ((resolution instanceof Domain) && (!remainder)) {
             res = await resolution.p_resolve(".", {verbose});
             resolution = res[0];
             remainder = res[1];
             if (resolution instanceof Leaf) {
-                await resolution.p_boot(openChrome,id,{remainder, search_supplied, opentarget, verbose}); // Throws error if fails
+                await resolution.p_boot({remainder, search_supplied, opentarget, openChromeTab, verbose}); // Throws error if fails
             } else {
                 // noinspection ExceptionCaughtLocallyJS
                 throw new Error("Path resolves to a Domain even after looking at '.'");
