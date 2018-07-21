@@ -21,6 +21,7 @@
   "devDependencies": {
     "chai": "latest",
     "jsdom": "^11.11.0",
+    "webpack-command": "^0.4.1",
     "y-leveldb": "latest"
   },
   "homepage": "https://github.com/internetarchive/dweb-objects#readme",
@@ -34,7 +35,7 @@
   },
   "scripts": {
     "test": "node ./test.js",
-    "build": "webpack --mode development",
+    "build": "webpack --mode production",
     "help": "echo 'test (test it), webpack (build it), setuphttp (link files for http access);'",
     "setuphttp": "ln -s ../node_modules/dweb-transports/dist/dweb-transports-bundle.js dist;"
   },
