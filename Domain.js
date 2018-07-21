@@ -379,7 +379,7 @@ class Domain extends KeyValueTable {
         */
         //TODO-NAME add ipfs address and ideally ipns address to archiveOrgDetails record
         //p_new should add registrars at whichever compliant transports are connected (YJS, HTTP)
-        Domain.root = await Domain.p_new({_acl: archiveadminkc, name: "", keychain: archiveadminkc}, true, {passphrase: pass2+"/"}, verbose, [], {   //TODO-NAME will need a secure root key
+        Domain.root = await Domain.p_new({_acl: archiveadminkc, name: "", keychain: archiveadminkc}, true, {passphrase: pass2+"/"}, verbose, [], {   //TODO-NAME will need a secure root key and a way to load here securely
             arc: await Domain.p_new({_acl: archiveadminkc, keychain: archiveadminkc},true, {passphrase: pass2+"/arc"}, verbose, [], { // /arc domain points at our top level resolver.
                 "archive.org": await Domain.p_new({_acl: archiveadminkc, keychain: archiveadminkc}, true, {passphrase: pass2+"/arc/archive.org"}, verbose, [], {
                     ".": await Leaf.p_new({urls: ["https://dweb.me/archive/archive.html"], mimetype: "text/html",
@@ -391,9 +391,9 @@ class Domain extends KeyValueTable {
                     "examples": await Leaf.p_new({urls: ["https://dweb.me/archive/examples/"], metadata: {htmlpath: "/" }}, verbose, {}),
                     "images": await Leaf.p_new({urls: ["https://dweb.me/archive/images/"], metadata: {htmlpath: "/" }}, verbose, {}),
                     "serve": await Leaf.p_new({urls: ["https://dweb.archive.org/download/"], metadata: {htmlpath: "/" }}, verbose, {}), // Example is in commute.description
-                    "metadata": await Domain.p_new({_acl: archiveadminkc, keychain: archiveadminkc}, true, {passphrase: pass2+"/arc/archive.org/metadata"}, verbose, [metadataGateway], {}),
-                            //"temp": await Leaf.p_new({urls: ["https://dweb.archive.org/metadata/"], metadata: {htmlpath: "/" }}, verbose, {}),
-                            "temp": await Leaf.p_new({urls: ["gun:/gun/arc/archive.org/metadata/"], metadata: {htmlpath: "/" }}, verbose, {}),
+                    //"metadata": await Domain.p_new({_acl: archiveadminkc, keychain: archiveadminkc}, true, {passphrase: pass2+"/arc/archive.org/metadata"}, verbose, [metadataGateway], {}),
+                    "metadata": await Leaf.p_new({urls: ["https://dweb.archive.org/metadata/"], metadata: {htmlpath: "/" }}, verbose, {}),
+                    //"metadata": await Leaf.p_new({urls: ["gun:/gun/arc/archive.org/metadata/"], metadata: {htmlpath: "/" }}, verbose, {}),  //TODO-GUN See hack - where - to use temp?
                     "search.php": await Leaf.p_new({urls: ["https://dweb.me/archive/archive.html"], mimetype: "text/html",
                         metadata: {htmlusesrelativeurls: true, htmlpath: "path"}}, verbose, {})
                     //Note I was seeing a lock error here, but cant repeat now - commenting out one of these last two lines seemed to clear it.
@@ -401,9 +401,14 @@ class Domain extends KeyValueTable {
             })
         }); //root
         const testing = Domain.root.tablepublicurls.map(u => u.includes("localhost")).includes(true);
+        if (JSON.stringify(Domain.root._publicurls) === JSON.stringify(rootSetPublicUrls)) {
+            console.log("root urls havent changed");
+        } else {
         console.log(testing ? "publicurls for testing" : "Put these Domain.root public urls in const rootSetPublicUrls", Domain.root._publicurls);
-        const metadatatableurl = Domain.root._map["arc"]._map["archive.org"]._map["metadata"].tablepublicurls.find(u=>u.includes("getall/table"))
-        if (!testing) {
+        }
+        const metadatatableurls = Domain.root._map["arc"]._map["archive.org"]._map["metadata"].tablepublicurls
+        const metadatatableurl = metadatatableurls ? metadatatableurls.find(u=>u.includes("getall/table")) : undefined;
+        if (metadatatableurl && !testing) {
             console.log("Put this in gateway config.py config.domains.metadata:", metadatatableurl);
         }
         if (verbose) console.log(await this.root.p_printable());
