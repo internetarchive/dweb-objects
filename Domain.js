@@ -5,8 +5,10 @@ const KeyPair = require('./KeyPair'); // Encapsulate public/private key pairs an
 const utils = require('./utils'); // Utility functions
 const KeyValueTable = require("./KeyValueTable"); //for extends
 const KeyChain = require('./KeyChain'); // Hold a set of keys, and locked objects
-const AccessControlList = require('./AccessControlList');
+// noinspection JSUnusedLocalSymbols
+const AccessControlList = require('./AccessControlList');   // Required (though not used in this code) to make sure decryption is patched in
 
+const rootSetPublicUrls =  [ 'contenthash:/contenthash/QmVFh13MW42ksJCCj73SGS5MzKggeyu1DmxsvteDnJPkmk' ];
 //Mixins based on https://javascriptweblog.wordpress.com/2011/05/31/a-fresh-look-at-javascript-mixins/
 
 const SignatureMixin = function(fieldlist) {
@@ -51,11 +53,11 @@ const SignatureMixin = function(fieldlist) {
             return false;
 
         }
-    }
+    };
 
     this._verifyOwnSigs = function() { // Pair of sign
         // Return an array of keys that signed this match, caller should check it accepts those keys
-        console.debug("WARNING - faking signature verification while testing gateway to archive metadata")
+        console.debug("WARNING - faking signature verification while testing gateway to archive metadata");
         return this.signatures
             .filter(sig => this._verifySig(sig))
             .map(sig => sig.signedby);
@@ -125,32 +127,35 @@ class Leaf extends SmartDict {
         /*
         Sees it it can resolve the path in the Leaf further, because we know the type of object (e.g. can return subfield of some JSON)
          */
-        let obj;
         try {
             if (["application/json"].includes(this.mimetype) ) {
                 let data = await DwebTransports.p_rawfetch(this.urls, { verbose, timeoutMS: 5000});
                 let datajson = (typeof data === "string" || data instanceof Buffer) ? JSON.parse(data) : data;          // Parse JSON (dont parse if p_fetch has returned object (e.g. from KeyValueTable
                 if (this.metadata["jsontype"] === "archive.org.dweb") {
-                    let obj = await this._after_fetch(datajson, urls, verbose);   // Interpret as dweb - look at its "table" and possibly decrypt
+                    let obj = await SmartDict._after_fetch(datajson, urls, verbose);   // Interpret as dweb - look at its "table" and possibly decrypt
                     return obj.p_resolve(path, {verbose: false});   // This wont work unless the object implements p_resolve (most dont)
                 } else {
                     console.error("Leaf.p_resolve unknown type of JSON", this.mimetype);
+                    // noinspection ExceptionCaughtLocallyJS
                     throw new errors.ResolutionError(`Leaf.p_resolve unable to resolve path: ${path} in ${this.name} because jsontype ${this.metadata["jsontype"]} unrecognized`);
                 }
             } else if (["text/html"].includes(this.mimetype) ) {
                 return [this, path];
             } else if (this.metadata.htmlpath === "/") {   // See if we have a leaf that is a directory and a remainder
-                this.urls = this.urls.map(u => u + path);            // Append the remainder to each URL - url should end in / for a directory, and path should not start with a /
-                return [this, ""];
+                // This is important - we copy the Leaf because "this" is cached on the parent Domain, and if we edit the urls we'd edit the cached version
+                let newleaf = new Leaf(this); // Copy it.
+                newleaf.urls = this.urls.map(u => u + path);     // newleaf has new url array (not pointer to this's), with remainder appended to each URL - url should end in / for a directory, and path should not start with a /
+                return [newleaf, ""];
             } else {
-                console.error("Leaf.p_resolve, unknown mimetype", this.mimetype)
+                console.error("Leaf.p_resolve, unknown mimetype", this.mimetype);
+                // noinspection ExceptionCaughtLocallyJS
                 throw new errors.ResolutionError(`Leaf.p_resolve unable to resolve path: ${path} in ${this.name} because mimetype ${this.mimetype} unrecognized`);
             }
         } catch(err) {
             throw new errors.ResolutionError(err.message);
         }
     }
-    async p_boot({remainder=undefined, search_supplied=undefined, opentarget="_self", verbose=false}={}) { //TODO-API
+    async p_boot({remainder=undefined, search_supplied=undefined, opentarget="_self", openChromeTab = undefined, verbose=false}={}) { //TODO-API
         /*
             Utility to display a Leaf, will probably need expanding to more kinds of media and situations via options
             Strategy depends on whether we expect relativeurls inside the HTML. If do, then need to do a window.open so that URL is correct, otherwise fetch and display as a blob
@@ -163,25 +168,32 @@ class Leaf extends SmartDict {
         if (!this.mimetype || ["text/html"].includes(this.mimetype)) {
             //Its an HTML file, open it
             if (this.metadata.htmlusesrelativeurls) {
-                let tempurls = this.urls;
                 const pathatt = this.metadata.htmlpath || "path";
                 // Loop through urls till succeed to open one of them
                 let errs = [];
-                while (tempurls.length) {
-                    let url = new URL(tempurls.shift());
+                let urlloaded = this.urls.map(u => new URL(u)).find( url => {
                     try {
                         if (remainder) url.search = url.search + (url.search ? '&' : "") + `${pathatt}=${remainder}`;
                         if (search_supplied) url.search = url.search + (url.search ? '&' : "") + search_supplied;
                         if (verbose) url.search = url.search + (url.search ? '&' : "") + 'verbose=true';
                         if (verbose) console.log("Bootstrap loading url:", url.href);
-                        window.open(url.href, opentarget); //if opentarget is blank then I think should end this script.
-                        return; // Only try and open one - bypasses error throwing
+                        if(openChromeTab){
+                            console.log("URL to load is "+url.href);
+                            // noinspection JSUnresolvedVariable
+                            chrome.tabs.update(openChromeTab, {url:url.href}, function(){});
+                        }else{
+                            window.open(url.href, opentarget); //if opentarget is blank then I think should end this script.
+                        }
+                        return true; // Only try and open one - bypasses error throwing
                     } catch(err) {
                         console.log("Failed to open", url, err.message);
                         errs.push(err);
+                        return false;
                     }
-                }
-                if (errs.length) {
+                });
+                if (urlloaded) {
+                    console.log("Succeeded to open", urlloaded.href);
+                } else if (errs.length) {
                     throw err[0];   // First error encountered
                 } else {
                     throw new Error("Unable to open any URL in Leaf");
@@ -189,7 +201,8 @@ class Leaf extends SmartDict {
             } else {
                 // Its not clear if parms make sense to a blob, if they are needed then can copy from above code
                 // Not setting timeoutMS as could be a slow load of a big file TODO-TIMEOUT make dependent on size
-                DwebObjects.utils.display_blob(await DwebTransports.p_rawfetch(this.urls, {verbose}), {type: this.mimetype, target: opentarget});
+                //TODO display_blob no longer exists - need to find old version in repo and include
+                utils.display_blob(await DwebTransports.p_rawfetch(this.urls, {verbose}), {type: this.mimetype, target: opentarget});
             }
         } else {
             throw new Error("Bootloader fail, dont know how to display mimetype" + this.mimetype);
@@ -197,6 +210,7 @@ class Leaf extends SmartDict {
     }
 
 }
+
 NameMixin.call(Leaf.prototype);
 SignatureMixin.call(Leaf.prototype, ["expires", "name", "urls"]);   // Probably need to be in alphabetic order
 SmartDict.table2class["leaf"] = Leaf;
@@ -239,6 +253,7 @@ class Domain extends KeyValueTable {
             await obj.keychain.p_push(obj, verbose);
         }
         for (let j in kids ) {
+            // noinspection JSUnfilteredForInLoop
             await obj.p_register(j, kids[j]);
         }
         return obj;
@@ -293,10 +308,7 @@ class Domain extends KeyValueTable {
 
     static async p_rootSet( {verbose=false}={}){
         //TODO-CONFIG put this (and other TODO-CONFIG into config file)
-        // [ "contenthash:/contenthash/QmRgvjFsRMNAGstAUZUcBxYsg6zejHFEZfcFzvzV6osPyF" ]; // Prior to 2018-05-22
-        //const rootpublicurls = [ 'contenthash:/contenthash/QmRiVND6Ct23jekiS7gA5toD4T7F7RZZ37DzHwzKuhdaN7' ]; // As of 2018-05-22
-        const rootpublicurls = [ 'contenthash:/contenthash/QmVFh13MW42ksJCCj73SGS5MzKggeyu1DmxsvteDnJPkmk' ]; // As of 2018-07-05
-        this.root = await SmartDict.p_fetch(rootpublicurls,  {verbose, timeoutMS: 5000});
+        this.root = await SmartDict.p_fetch(rootSetPublicUrls,  {verbose, timeoutMS: 5000});
     }
 
     static async p_rootResolve(path, {verbose=false}={}) {
@@ -335,7 +347,7 @@ class Domain extends KeyValueTable {
         if (res) { // Found one
             if (!remainder.length) // We found it
                 return [ res, undefined ] ;
-                return await res.p_resolve(remainder.join('/'), {verbose});           // ===== Note recursion ====
+            return await res.p_resolve(remainder.join('/'), {verbose});           // ===== Note recursion ====
             //TODO need other classes e.g. SD  etc to handle p_resolve as way to get path
         } else {
             console.log("Unable to resolve",name,"in",this.name);
@@ -370,29 +382,36 @@ class Domain extends KeyValueTable {
         */
         //TODO-NAME add ipfs address and ideally ipns address to archiveOrgDetails record
         //p_new should add registrars at whichever compliant transports are connected (YJS, HTTP)
-        Domain.root = await Domain.p_new({_acl: archiveadminkc, name: "", keychain: archiveadminkc}, true, {passphrase: pass2+"/"}, verbose, [], {   //TODO-NAME will need a secure root key
+        Domain.root = await Domain.p_new({_acl: archiveadminkc, name: "", keychain: archiveadminkc}, true, {passphrase: pass2+"/"}, verbose, [], {   //TODO-NAME will need a secure root key and a way to load here securely
             arc: await Domain.p_new({_acl: archiveadminkc, keychain: archiveadminkc},true, {passphrase: pass2+"/arc"}, verbose, [], { // /arc domain points at our top level resolver.
                 "archive.org": await Domain.p_new({_acl: archiveadminkc, keychain: archiveadminkc}, true, {passphrase: pass2+"/arc/archive.org"}, verbose, [], {
-                            ".": await Leaf.p_new({urls: ["https://dweb.me/archive/archive.html"], mimetype: "text/html",
-                                metadata: {htmlusesrelativeurls: true}}, verbose, {}),
-                            "about": await Leaf.p_new({urls: ["https://archive.org/about/"], metadata: {htmlpath: "/" }}, verbose, {}),
-                            //TODO-ARC change these once dweb.me fixed
-                            "details": await Leaf.p_new({urls: ["https://dweb.me/archive/archive.html"], mimetype: "text/html",
-                                metadata: {htmlusesrelativeurls: true, htmlpath: "item"}}, verbose,[], {}),
-                            "examples": await Leaf.p_new({urls: ["https://dweb.me/archive/examples/"], metadata: {htmlpath: "/" }}, verbose, {}),
-                            "images": await Leaf.p_new({urls: ["https://dweb.me/archive/images/"], metadata: {htmlpath: "/" }}, verbose, {}),
-                            "serve": await Leaf.p_new({urls: ["https://dweb.archive.org/download/"], metadata: {htmlpath: "/" }}, verbose, {}), // Example is in commute.description
-                            "metadata": await Domain.p_new({_acl: archiveadminkc, keychain: archiveadminkc}, true, {passphrase: pass2+"/arc/archive.org/metadata"}, verbose, [metadataGateway], {}),
-                            "search.php": await Leaf.p_new({urls: ["https://dweb.me/archive/archive.html"], mimetype: "text/html",
-                                metadata: {htmlusesrelativeurls: true, htmlpath: "path"}}, verbose, {})
-                            //Note I was seeing a lock error here, but cant repeat now - commenting out one of these last two lines seemed to clear it.
+                    ".": await Leaf.p_new({urls: ["https://dweb.me/archive/archive.html"], mimetype: "text/html",
+                        metadata: {htmlusesrelativeurls: true}}, verbose, {}),
+                    "about": await Leaf.p_new({urls: ["https://archive.org/about/"], metadata: {htmlpath: "/" }}, verbose, {}),
+                    //TODO-ARC change these once dweb.me fixed
+                    "details": await Leaf.p_new({urls: ["https://dweb.me/archive/archive.html"], mimetype: "text/html",
+                        metadata: {htmlusesrelativeurls: true, htmlpath: "item"}}, verbose,[], {}),
+                    "examples": await Leaf.p_new({urls: ["https://dweb.me/archive/examples/"], metadata: {htmlpath: "/" }}, verbose, {}),
+                    "images": await Leaf.p_new({urls: ["https://dweb.me/archive/images/"], metadata: {htmlpath: "/" }}, verbose, {}),
+                    "serve": await Leaf.p_new({urls: ["https://dweb.archive.org/download/"], metadata: {htmlpath: "/" }}, verbose, {}), // Example is in commute.description
+                    //"metadata": await Domain.p_new({_acl: archiveadminkc, keychain: archiveadminkc}, true, {passphrase: pass2+"/arc/archive.org/metadata"}, verbose, [metadataGateway], {}),
+                    "metadata": await Leaf.p_new({urls: ["gun:/gun/arc/archive.org/metadata/", "https://dweb.archive.org/metadata/"], metadata: {htmlpath: "/" }}, verbose, {}),
+                    //"metadata": await Leaf.p_new({urls: ["gun:/gun/arc/archive.org/metadata/"], metadata: {htmlpath: "/" }}, verbose, {}),  //TODO-GUN See hack - where - to use temp?
+                    "search.php": await Leaf.p_new({urls: ["https://dweb.me/archive/archive.html"], mimetype: "text/html",
+                        metadata: {htmlusesrelativeurls: true, htmlpath: "path"}}, verbose, {})
+                    //Note I was seeing a lock error here, but cant repeat now - commenting out one of these last two lines seemed to clear it.
                 })
             })
         }); //root
         const testing = Domain.root.tablepublicurls.map(u => u.includes("localhost")).includes(true);
-        console.log("Domain.root publicurls for",testing ? "testing:" : "inclusion in Domain.js:p_rootSet():",Domain.root._publicurls);
-        const metadatatableurl = Domain.root._map["arc"]._map["archive.org"]._map["metadata"].tablepublicurls.find(u=>u.includes("getall/table"))
-        if (!testing) {
+        if (JSON.stringify(Domain.root._publicurls) === JSON.stringify(rootSetPublicUrls)) {
+            console.log("root urls havent changed");
+        } else {
+            console.log(testing ? "publicurls for testing" : "Put these Domain.root public urls in const rootSetPublicUrls", Domain.root._publicurls);
+        }
+        const metadatatableurls = Domain.root._map["arc"]._map["archive.org"]._map["metadata"].tablepublicurls
+        const metadatatableurl = metadatatableurls ? metadatatableurls.find(u=>u.includes("getall/table")) : undefined;
+        if (metadatatableurl && !testing) {
             console.log("Put this in gateway config.py config.domains.metadata:", metadatatableurl);
         }
         if (verbose) console.log(await this.root.p_printable());
@@ -510,7 +529,7 @@ class Domain extends KeyValueTable {
         }
     }
 
-    static async p_resolveAndBoot(name, {verbose=false, opentarget="_self", search_supplied=undefined}={}) {
+    static async p_resolveAndBoot(name, {verbose=false, opentarget="_self", search_supplied=undefined, openChromeTab=undefined}={}) {
         /*
         Utility function for bootloader.html
         Try and resolve a name, if get a Leaf then boot it, if get another domain then try and resolve the "." and boot that.
@@ -521,19 +540,19 @@ class Domain extends KeyValueTable {
         TODO - are there any cases where want to try multiple names -dont think so
          */
         let nameandsearch = name.split('?');
-        name = nameandsearch[0]
+        name = nameandsearch[0];
         if (nameandsearch.length) search_supplied = nameandsearch[1];
         let res = await this.p_rootResolve(name, {verbose});
         let resolution = res[0];
         let remainder = res[1];
         if (resolution instanceof Leaf) {
-            await resolution.p_boot({remainder, search_supplied, opentarget, verbose}); // Throws error if fails
+            await resolution.p_boot({remainder, search_supplied, opentarget, openChromeTab, verbose}); // Throws error if fails
         } else if ((resolution instanceof Domain) && (!remainder)) {
             res = await resolution.p_resolve(".", {verbose});
             resolution = res[0];
             remainder = res[1];
             if (resolution instanceof Leaf) {
-                await resolution.p_boot({remainder, search_supplied, opentarget, verbose}); // Throws error if fails
+                await resolution.p_boot({remainder, search_supplied, opentarget, openChromeTab, verbose}); // Throws error if fails
             } else {
                 // noinspection ExceptionCaughtLocallyJS
                 throw new Error("Path resolves to a Domain even after looking at '.'");

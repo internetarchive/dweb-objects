@@ -151,6 +151,7 @@ class KeyValueTable extends PublicPrivate {
     async p_getMerge(keys, verbose) {
         /*
         Get the value of a key, but if there are multiple tablepublicurls then check them all, and use the most recent value
+        This is only going to work if the values stored are signed and dated .
         TODO - will store most recent back to stores that don't have it.
 
         key:    Key or Array of keys.
