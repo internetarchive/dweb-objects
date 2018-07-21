@@ -53,11 +53,11 @@ const SignatureMixin = function(fieldlist) {
             return false;
 
         }
-    }
+    };
 
     this._verifyOwnSigs = function() { // Pair of sign
         // Return an array of keys that signed this match, caller should check it accepts those keys
-        console.debug("WARNING - faking signature verification while testing gateway to archive metadata")
+        console.debug("WARNING - faking signature verification while testing gateway to archive metadata");
         return this.signatures
             .filter(sig => this._verifySig(sig))
             .map(sig => sig.signedby);
@@ -127,16 +127,16 @@ class Leaf extends SmartDict {
         /*
         Sees it it can resolve the path in the Leaf further, because we know the type of object (e.g. can return subfield of some JSON)
          */
-        let obj;
         try {
             if (["application/json"].includes(this.mimetype) ) {
                 let data = await DwebTransports.p_rawfetch(this.urls, { verbose, timeoutMS: 5000});
                 let datajson = (typeof data === "string" || data instanceof Buffer) ? JSON.parse(data) : data;          // Parse JSON (dont parse if p_fetch has returned object (e.g. from KeyValueTable
                 if (this.metadata["jsontype"] === "archive.org.dweb") {
-                    let obj = await this._after_fetch(datajson, urls, verbose);   // Interpret as dweb - look at its "table" and possibly decrypt
+                    let obj = await SmartDict._after_fetch(datajson, urls, verbose);   // Interpret as dweb - look at its "table" and possibly decrypt
                     return obj.p_resolve(path, {verbose: false});   // This wont work unless the object implements p_resolve (most dont)
                 } else {
                     console.error("Leaf.p_resolve unknown type of JSON", this.mimetype);
+                    // noinspection ExceptionCaughtLocallyJS
                     throw new errors.ResolutionError(`Leaf.p_resolve unable to resolve path: ${path} in ${this.name} because jsontype ${this.metadata["jsontype"]} unrecognized`);
                 }
             } else if (["text/html"].includes(this.mimetype) ) {
@@ -147,7 +147,8 @@ class Leaf extends SmartDict {
                 newleaf.urls = this.urls.map(u => u + path);     // newleaf has new url array (not pointer to this's), with remainder appended to each URL - url should end in / for a directory, and path should not start with a /
                 return [newleaf, ""];
             } else {
-                console.error("Leaf.p_resolve, unknown mimetype", this.mimetype)
+                console.error("Leaf.p_resolve, unknown mimetype", this.mimetype);
+                // noinspection ExceptionCaughtLocallyJS
                 throw new errors.ResolutionError(`Leaf.p_resolve unable to resolve path: ${path} in ${this.name} because mimetype ${this.mimetype} unrecognized`);
             }
         } catch(err) {
@@ -200,7 +201,8 @@ class Leaf extends SmartDict {
             } else {
                 // Its not clear if parms make sense to a blob, if they are needed then can copy from above code
                 // Not setting timeoutMS as could be a slow load of a big file TODO-TIMEOUT make dependent on size
-                DwebObjects.utils.display_blob(await DwebTransports.p_rawfetch(this.urls, {verbose}), {type: this.mimetype, target: opentarget});
+                //TODO display_blob no longer exists - need to find old version in repo and include
+                utils.display_blob(await DwebTransports.p_rawfetch(this.urls, {verbose}), {type: this.mimetype, target: opentarget});
             }
         } else {
             throw new Error("Bootloader fail, dont know how to display mimetype" + this.mimetype);
@@ -251,6 +253,7 @@ class Domain extends KeyValueTable {
             await obj.keychain.p_push(obj, verbose);
         }
         for (let j in kids ) {
+            // noinspection JSUnfilteredForInLoop
             await obj.p_register(j, kids[j]);
         }
         return obj;
@@ -404,7 +407,7 @@ class Domain extends KeyValueTable {
         if (JSON.stringify(Domain.root._publicurls) === JSON.stringify(rootSetPublicUrls)) {
             console.log("root urls havent changed");
         } else {
-        console.log(testing ? "publicurls for testing" : "Put these Domain.root public urls in const rootSetPublicUrls", Domain.root._publicurls);
+            console.log(testing ? "publicurls for testing" : "Put these Domain.root public urls in const rootSetPublicUrls", Domain.root._publicurls);
         }
         const metadatatableurls = Domain.root._map["arc"]._map["archive.org"]._map["metadata"].tablepublicurls
         const metadatatableurl = metadatatableurls ? metadatatableurls.find(u=>u.includes("getall/table")) : undefined;
@@ -537,7 +540,7 @@ class Domain extends KeyValueTable {
         TODO - are there any cases where want to try multiple names -dont think so
          */
         let nameandsearch = name.split('?');
-        name = nameandsearch[0]
+        name = nameandsearch[0];
         if (nameandsearch.length) search_supplied = nameandsearch[1];
         let res = await this.p_rootResolve(name, {verbose});
         let resolution = res[0];
