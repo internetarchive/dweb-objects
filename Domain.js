@@ -5,7 +5,8 @@ const KeyPair = require('./KeyPair'); // Encapsulate public/private key pairs an
 const utils = require('./utils'); // Utility functions
 const KeyValueTable = require("./KeyValueTable"); //for extends
 const KeyChain = require('./KeyChain'); // Hold a set of keys, and locked objects
-const AccessControlList = require('./AccessControlList');
+// noinspection JSUnusedLocalSymbols
+const AccessControlList = require('./AccessControlList');   // Required (though not used in this code) to make sure decryption is patched in
 
 const rootSetPublicUrls =  [ 'contenthash:/contenthash/QmVFh13MW42ksJCCj73SGS5MzKggeyu1DmxsvteDnJPkmk' ];
 //Mixins based on https://javascriptweblog.wordpress.com/2011/05/31/a-fresh-look-at-javascript-mixins/
@@ -141,8 +142,10 @@ class Leaf extends SmartDict {
             } else if (["text/html"].includes(this.mimetype) ) {
                 return [this, path];
             } else if (this.metadata.htmlpath === "/") {   // See if we have a leaf that is a directory and a remainder
-                this.urls = this.urls.map(u => u + path);            // Append the remainder to each URL - url should end in / for a directory, and path should not start with a /
-                return [this, ""];
+                // This is important - we copy the Leaf because "this" is cached on the parent Domain, and if we edit the urls we'd edit the cached version
+                let newleaf = new Leaf(this); // Copy it.
+                newleaf.urls = this.urls.map(u => u + path);     // newleaf has new url array (not pointer to this's), with remainder appended to each URL - url should end in / for a directory, and path should not start with a /
+                return [newleaf, ""];
             } else {
                 console.error("Leaf.p_resolve, unknown mimetype", this.mimetype)
                 throw new errors.ResolutionError(`Leaf.p_resolve unable to resolve path: ${path} in ${this.name} because mimetype ${this.mimetype} unrecognized`);
@@ -164,12 +167,10 @@ class Leaf extends SmartDict {
         if (!this.mimetype || ["text/html"].includes(this.mimetype)) {
             //Its an HTML file, open it
             if (this.metadata.htmlusesrelativeurls) {
-                let tempurls = this.urls;
                 const pathatt = this.metadata.htmlpath || "path";
                 // Loop through urls till succeed to open one of them
                 let errs = [];
-                while (tempurls.length) {
-                    let url = new URL(tempurls.shift());
+                let urlloaded = this.urls.map(u => new URL(u)).find( url => {
                     try {
                         if (remainder) url.search = url.search + (url.search ? '&' : "") + `${pathatt}=${remainder}`;
                         if (search_supplied) url.search = url.search + (url.search ? '&' : "") + search_supplied;
@@ -177,17 +178,21 @@ class Leaf extends SmartDict {
                         if (verbose) console.log("Bootstrap loading url:", url.href);
                         if(openChromeTab){
                             console.log("URL to load is "+url.href);
+                            // noinspection JSUnresolvedVariable
                             chrome.tabs.update(openChromeTab, {url:url.href}, function(){});
                         }else{
                             window.open(url.href, opentarget); //if opentarget is blank then I think should end this script.
                         }
-                        return; // Only try and open one - bypasses error throwing
+                        return true; // Only try and open one - bypasses error throwing
                     } catch(err) {
                         console.log("Failed to open", url, err.message);
                         errs.push(err);
+                        return false;
                     }
-                }
-                if (errs.length) {
+                });
+                if (urlloaded) {
+                    console.log("Succeeded to open", urlloaded.href);
+                } else if (errs.length) {
                     throw err[0];   // First error encountered
                 } else {
                     throw new Error("Unable to open any URL in Leaf");
@@ -300,8 +305,7 @@ class Domain extends KeyValueTable {
 
     static async p_rootSet( {verbose=false}={}){
         //TODO-CONFIG put this (and other TODO-CONFIG into config file)
-        const rootpublicurls =rootSetPublicUrls; // As of 2018-07-05 .. 2018-07-17
-        this.root = await SmartDict.p_fetch(rootpublicurls,  {verbose, timeoutMS: 5000});
+        this.root = await SmartDict.p_fetch(rootSetPublicUrls,  {verbose, timeoutMS: 5000});
     }
 
     static async p_rootResolve(path, {verbose=false}={}) {
