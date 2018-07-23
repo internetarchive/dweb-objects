@@ -201,8 +201,8 @@ class Leaf extends SmartDict {
             } else {
                 // Its not clear if parms make sense to a blob, if they are needed then can copy from above code
                 // Not setting timeoutMS as could be a slow load of a big file TODO-TIMEOUT make dependent on size
-                //TODO display_blob no longer exists - need to find old version in repo and include
-                utils.display_blob(await DwebTransports.p_rawfetch(this.urls, {verbose}), {type: this.mimetype, target: opentarget});
+                //TODO figure out how to open as a stream and send to a window
+                utils.display_blob(await DwebTransports.p_rawfetch(this.urls, {verbose,  timeoutMS: 5000}), {type: this.mimetype, target: opentarget});
             }
         } else {
             throw new Error("Bootloader fail, dont know how to display mimetype" + this.mimetype);
