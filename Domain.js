@@ -401,7 +401,10 @@ class Domain extends KeyValueTable {
                         metadata: {htmlusesrelativeurls: true, htmlpath: "path"}}, verbose, {})
                     //Note I was seeing a lock error here, but cant repeat now - commenting out one of these last two lines seemed to clear it.
                 })
-            })
+            }),
+            ipfs: await Leaf.p_new({urls: ["http://ipfs.io/ipfs/", "https://dweb.me/ipfs/"],  metadata: {htmlpath: "/" }}, verbose, {}),
+            //TODO-IPFS, running into problems as of 22Jul2018 with files.cat, so skipping direct ipfs load till figure out.
+            //ipfs: await Leaf.p_new({urls: ["ipfs:/ipfs/", "http://ipfs.io/ipfs/", "https://dweb.me/ipfs/"],  metadata: {htmlpath: "/" }}, verbose, {}),
         }); //root
         const testing = Domain.root.tablepublicurls.map(u => u.includes("localhost")).includes(true);
         if (JSON.stringify(Domain.root._publicurls) === JSON.stringify(rootSetPublicUrls)) {
@@ -543,7 +546,7 @@ class Domain extends KeyValueTable {
         name = nameandsearch[0];
         if (nameandsearch.length) search_supplied = nameandsearch[1];
         let res = await this.p_rootResolve(name, {verbose});
-        let resolution = res[0];
+        let resolution = res[0];    // Will be a Leaf or a Domain
         let remainder = res[1];
         if (resolution instanceof Leaf) {
             await resolution.p_boot({remainder, search_supplied, opentarget, openChromeTab, verbose}); // Throws error if fails
