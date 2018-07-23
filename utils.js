@@ -41,6 +41,35 @@ utils.keyFilter = function(dic, keys) {
     return keys.reduce(function(prev, key) { prev[key] = dic[key]; return prev; }, {});
 }
 
+utils.display_blob = function(bb, options) {
+    /*
+        Display a blob of data (in a browser)
+        Typical usage Dweb.utils.display_blob(await Dweb.Transports.p_rawfetch(urls), {type: "application/pdf"})
+        bb: Data to display, either as blob or something that can be passed to Blob([bb]) e.g. a buffer
+        options:    {
+            type: mimetype  (required if bb not already a blob)
+            target:     Where to display e.g. "_blank" or "_self"
+        }
+        TODO probably extend this to do a download which has some code in archive/*js to handle
+     */
+    // See https://developer.mozilla.org/en-US/docs/Web/API/URL/createObjectURL
+    // and https://stackoverflow.com/questions/3665115/create-a-file-in-memory-for-user-to-download-not-through-server
+    if (!(bb instanceof Blob)) {
+        console.log("display_blob: creating with type",options.type);
+        bb = new Blob([bb], {type: options.type})
+    }
+    console.log("display_blob:",typeof bb);
+    // This next code is bizarre combination needed to open a blob from within an HTML window.
+    let a = window.document.createElement('a');
+    //bb = new Blob([datapdf], {type: 'application/pdf'});
+    let objectURL = URL.createObjectURL(bb);
+    a.href = objectURL;
+    a.target= (options && options.target) || "_blank";                      // Open in new window by default
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    //URL.revokeObjectURL(objectURL)    //TODO figure out when can do this - maybe last one, or maybe dont care?
+}
 utils.createElement = function(tag, attrs, children) {        // Note arguments is set to tag, attrs, child1, child2 etc
     // Note identical version in dweb-transport/js/utils.js and dweb-transports/utils.js and dweb-objects/utils.js
     var element = document.createElement(tag);
