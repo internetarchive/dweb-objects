@@ -398,7 +398,9 @@ class Domain extends KeyValueTable {
                     "metadata": await Leaf.p_new({urls: ["gun:/gun/arc/archive.org/metadata/", "https://dweb.archive.org/metadata/"], metadata: {htmlpath: "/" }}, verbose, {}),
                     //"metadata": await Leaf.p_new({urls: ["gun:/gun/arc/archive.org/metadata/"], metadata: {htmlpath: "/" }}, verbose, {}),  //TODO-GUN See hack - where - to use temp?
                     "search.php": await Leaf.p_new({urls: ["https://dweb.me/archive/archive.html"], mimetype: "text/html",
-                        metadata: {htmlusesrelativeurls: true, htmlpath: "path"}}, verbose, {})
+                        metadata: {htmlusesrelativeurls: true, htmlpath: "query"}}, verbose, {}),
+                    "search": await Leaf.p_new({urls: ["https://dweb.me/archive/archive.html"], mimetype: "text/html",
+                        metadata: {htmlusesrelativeurls: true, htmlpath: "query"}}, verbose, {})
                     //Note I was seeing a lock error here, but cant repeat now - commenting out one of these last two lines seemed to clear it.
                 })
             }),
