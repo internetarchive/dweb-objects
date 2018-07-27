@@ -1,4 +1,3 @@
-//TODO-REPO - THIS LOOKS LIKE IT WILL BREAK SINCE TRANSITION TO OWN REPOSITORY dweb-objects -- REBUILD IF NEED TO RUN AGAIN
 
 // Fake a browser like environment for some tests inc in Node CreateCustomEvent
 const jsdom = require("jsdom");
@@ -8,7 +7,7 @@ const dom = new JSDOM(htmlfake);
 document = dom.window.document;   // Note in JS can't see "document" like can in python
 
 // Dweb constituents
-global.DwebTransports = require('dweb-transports'); // Manage all Transports that are loaded
+global.DwebTransports = require('@internetarchive/dweb-transports'); // Manage all Transports that are loaded
 const Domain = require('./Domain');
 
 /*

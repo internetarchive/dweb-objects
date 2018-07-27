@@ -54,16 +54,16 @@ See [API.md](./API.md) for the detailed API.
 * Clone this repo. 
 
 ### Incorporation in a Node application
-* Until this is in npm, add the lines
-`"dweb-transports": "git+https://git@github.com/internetarchive/dweb-transports.git",`
-`"dweb-objects": "git+https://git@github.com/internetarchive/dweb-objects.git",`
+
+`"@internetarchive/dweb-transports": "latest",`
+`"@internetarchive/dweb-objects": "latest",`
 to your package.json file in the dependencies section. 
-* `npm install dweb-objects`  will install the dependencies including IPFS & WebTorrent and dweb-transports
+* `npm install @internetarchive/dweb-objects`  will install the dependencies including IPFS & WebTorrent and dweb-transports
 
 In this order.
 ```
-const DwebTransports = require('dweb-transport') #adds the transports
-const DwebObjects = require('dweb-objects;)      #adds the object library
+const DwebTransports = require('@internetarchive/dweb-transport') #adds the transports
+const DwebObjects = require('@internetarchive/dweb-objects;)      #adds the object library
 ```
 
 * TODO writeup how to require only some of the transports.

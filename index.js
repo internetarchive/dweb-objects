@@ -1,10 +1,10 @@
 // Javascript library for Dweb objects
-// Use this file by e.g. const DwebObjects = require('dweb-objects')
+// Use this file by e.g. const DwebObjects = require('@internetarchive/dweb-objects')
 
 DwebObjects = { }
 
 //Not including Transports here, as may choose between direct or service worker
-//DwebObjects.Transports = require('dweb-transports');
+//DwebObjects.Transports = require('@internetarchive/dweb-transports');
 
 DwebObjects.errors = require('./Errors');
 DwebObjects.SmartDict = require("./SmartDict");

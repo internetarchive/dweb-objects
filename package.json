@@ -11,16 +11,17 @@
     "url": "https://github.com/internetarchive/dweb-objects/issues"
   },
   "dependencies": {
+    "@internetarchive/dweb-transports": "latest",
     "custom-event": "latest",
-    "dweb-transports": "git+https://git@github.com/internetarchive/dweb-transports.git",
     "libsodium-wrappers": "git+https://git@github.com/mitra42/libsodium.js.git",
     "multihashes": "latest",
-    "sha.js": "latest"
+    "sha.js": "latest",
+    "webpack": "^4.16.3"
   },
   "description": "Internet Archive Decentralized Web Transports Library",
   "devDependencies": {
     "chai": "latest",
-    "jsdom": "^11.11.0",
+    "jsdom": "^11.12.0",
     "webpack-command": "^0.4.1",
     "y-leveldb": "latest"
   },
@@ -28,7 +29,7 @@
   "keywords": [],
   "license": "AGPL-3.0",
   "main": "index.js",
-  "name": "dweb-objects",
+  "name": "@internetarchive/dweb-objects",
   "repository": {
     "type": "git",
     "url": "git://github.com/internetarchive/dweb-objects.git"
@@ -37,7 +38,7 @@
     "test": "node ./test.js",
     "build": "webpack --mode production",
     "help": "echo 'test (test it), webpack (build it), setuphttp (link files for http access);'",
-    "setuphttp": "ln -s ../node_modules/dweb-transports/dist/dweb-transports-bundle.js dist;"
+    "setuphttp": "ln -s ../node_modules/@internetarchive/dweb-transports/dist/dweb-transports-bundle.js dist;"
   },
-  "version": "0.1.1"
+  "version": "0.1.2"
 }
