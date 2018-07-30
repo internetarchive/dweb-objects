@@ -55,12 +55,15 @@ See [API.md](./API.md) for the detailed API.
 
 ### Incorporation in a Node application
 
-`"@internetarchive/dweb-transports": "latest",`
-`"@internetarchive/dweb-objects": "latest",`
-to your package.json file in the dependencies section. 
-* `npm install @internetarchive/dweb-objects`  will install the dependencies including IPFS & WebTorrent and dweb-transports
+Add to `package.json` in the `dependencies` section.
+```
+"@internetarchive/dweb-transports": "latest",
+"@internetarchive/dweb-objects": "latest",
+```
 
-In this order.
+* `npm install`  will then install `dweb-objects` and `dweb-transports` which currently includes `IPFS`, `WebTorrent`, `Gun`, `YJS`
+
+In your application javascript, in this order.
 ```
 const DwebTransports = require('@internetarchive/dweb-transport') #adds the transports
 const DwebObjects = require('@internetarchive/dweb-objects;)      #adds the object library
