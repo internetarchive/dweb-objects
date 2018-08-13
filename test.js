@@ -60,6 +60,7 @@ async function p_test(verbose) {
         let acl = res.acl;
         await VersionList.test(verbose);
         await p_test_KeyChain(acl, verbose); // depends on VersionList for test, though not for KeyChain itself
+        verbose = true;
         await KeyValueTable.p_test(verbose);
         await Domain.p_test(verbose);
 

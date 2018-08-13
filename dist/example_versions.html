@@ -28,6 +28,7 @@
                 document.getElementById("vl_target")["source"] = vl;
                 updateElement("readlockname", {}, vl._working._acl ? vl._working._acl.name : "");
                 updateElement("writelockname", {}, vl._acl ? vl._acl.name : "");
+                updateElement("publicurl", {}, vl._publicurls);
             } catch(err) {
                 console.log("p_vl_target_display: cannot display %o in element %o", vl, el, err.message);
                 throw err;
@@ -101,7 +102,7 @@
                 let el = elementFrom("vl_target");
                 if (url && !el.source) {   // Were asked to load a VL (indicated by global url being set) but had to wait for login.
                     p_vl_target_display(el, url) // Asynchronous
-                    .catch((err) => alert("Unable to fetch and display "+url));
+                        .catch((err) => alert("Unable to fetch and display "+url));
                 }
             } catch(err) {
                 console.log("onlogin: Cannot complete post-login activities for",kc);
@@ -154,17 +155,17 @@
 
 <!-- Way to create new list -->
 <div style="display:table">
-<form  style="display:table-cell;padding-right:50px;">
-    <h4>Open&nbsp;existing, </h4>
-    <select id="vls_list" onChange="vl_select(this);"></select>
-</form>
-<form method="post" style="display:table-cell;" id="newform" onsubmit="newversionlist(this); return false;">
-    <h4>or create new list.</h4>
-    <input class="propval" type="text" name="name" placeholder="Name of new version list" size="70" value=""/>
-    <br/><img class="keylist_icon" src="images/noun_1093404_cc_unlocked.png" alt="lock">
-    <select id="lock_list" name="contentacl"></select>
-    <input class="button" type="submit" value="Create"/>
-</form>
+    <form  style="display:table-cell;padding-right:50px;">
+        <h4>Open&nbsp;existing, </h4>
+        <select id="vls_list" onChange="vl_select(this);"></select>
+    </form>
+    <form method="post" style="display:table-cell;" id="newform" onsubmit="newversionlist(this); return false;">
+        <h4>or create new list.</h4>
+        <input class="propval" type="text" name="name" placeholder="Name of new version list" size="70" value=""/>
+        <br/><img class="keylist_icon" src="images/noun_1093404_cc_unlocked.png" alt="lock">
+        <select id="lock_list" name="contentacl"></select>
+        <input class="button" type="submit" value="Create"/>
+    </form>
 </div>
 <!-- Meta info about the list -->
 <div id="vl_target" class="displayedblock"> <!-- Note "vl_target" will make sure loginutils loads it by default-->
@@ -179,6 +180,8 @@
         <textarea id="mytextarea" name="textarea" width="60%">Testing</textarea>
     </form>
     <ul id="vl_list" name="_list"></ul>
+    XX<span style="display:table-cell;" id="publicurl"></span>XX
+
 </div>
 
 <!--

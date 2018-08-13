@@ -527,7 +527,7 @@ class Domain extends KeyValueTable {
             if (verbose) console.log("NAMES connected");
             let res = await this.p_resolveNames(["dweb:/arc/archive.org/metadata/commute"], {verbose});
             //console.assert(res.includes("https://dweb.me/metadata/archiveid/commute"))
-            console.assert(res.includes("https://dweb.me/arc/archive.org/metadata/commute"));
+            console.assert(res.includes("https://dweb.archive.org/metadata/commute"));
         } catch(err) {
             console.log("Exception thrown in Domain.p_test_gateway:", err.message);
             throw err;
