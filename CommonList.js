@@ -1,4 +1,5 @@
 const errors = require('./Errors'); // Standard Dweb Errors
+const debugcl = require('debug')('dweb-objects:commonlist');
 // Depends on var DwebTransports being set externally - its done this way so that both direct and ServiceWorker/Proxy can be used
 const SmartDict = require('./SmartDict'); // General handling of JSON structures
 const Signature = require('./Signature'); // Encapsulate a signature as used for items on a CommonList
@@ -26,7 +27,7 @@ class CommonList extends PublicPrivate {
     //push - see p_push
     //map - can do, but sig or data ?  Maybe mapSig and mapData
 
-    constructor(data, verbose, options) {
+    constructor(data, options) {
         /*
             Create a new instance of CommonList
             Note that in almost all cases should use p_new rather than constructor as constructor cant setup listurls and listpublicurls
@@ -34,15 +35,15 @@ class CommonList extends PublicPrivate {
 
             :param options: dict that overrides any fields of data
          */
-        super(data, verbose, options);
+        super(data, options);
         this.listurls = this.listurls || [];
         this.listpublicurls = this.listpublicurls || [];
         this.table = "cl";
     }
-    static async p_new(data, master, key, verbose, options) {
-        let obj = await super.p_new(data, master, key, verbose, options); // Note will call constructor
+    static async p_new(data, master, key, options) {
+        let obj = await super.p_new(data, master, key, options); // Note will call constructor
         if (obj._master && (!obj.listurls || !obj.listurls.length)) {
-            [obj.listurls,obj.listpublicurls] = await DwebTransports.p_newlisturls(obj, {verbose});
+            [obj.listurls,obj.listpublicurls] = await DwebTransports.p_newlisturls(obj);
         }
         return obj;
     }
@@ -72,21 +73,21 @@ class CommonList extends PublicPrivate {
         return dd;
     }
 
-    async p_fetchlist(verbose) {
+    async p_fetchlist() {
         /*
         Load the list from the Dweb,
         Use p_list_then_elements instead if wish to load the individual items in the list
         */
         if (!this.storedpublic())
-            await this._p_storepublic(verbose);
-        let lines = await DwebTransports.p_rawlist(this.listpublicurls, {verbose}); // [[sig,sig],[sig,sig]]
-        if (verbose) console.log("CommonList:p_fetchlist.success", this._urls, "len=", lines.length);
+            await this._p_storepublic();
+        let lines = await DwebTransports.p_rawlist(this.listpublicurls); // [[sig,sig],[sig,sig]]
+        debugcl("CommonList:p_fetchlist.success %o len=%d", this._urls, lines.length);
         this._list = lines
-            .map((l) => new Signature(l, verbose))    // Turn each line into a Signature
+            .map((l) => new Signature(l))    // Turn each line into a Signature
             .sort((a,b) => a.date < b.date ? -1 : a.date > b.date ? 1 : 0);  // Sort signatures by date
     }
 
-    async p_list_then_elements({verbose=false, ignoreerrors=false}={}) {
+    async p_list_then_elements({ignoreerrors=false}={}) {
         /*
          Utility function to simplify nested functions, fetches body, list and each element in the list.
 
@@ -94,11 +95,11 @@ class CommonList extends PublicPrivate {
         */
         try {
             //TODO-GUN this should probably instead use listmonitor({current: true}) to get existing items more efficiently in GUN
-            await this.p_fetchlist(verbose);
-            this.listmonitor({verbose});  // Track any future objects  - will call event Handler on any added
+            await this.p_fetchlist();
+            this.listmonitor();  // Track any future objects  - will call event Handler on any added
             return (await Promise.all(
                 Signature.filterduplicates(this._list) // Dont load multiple copies of items on list (might need to be an option?)
-                    .map((sig) => sig.p_fetchdata({verbose, ignoreerrors}))))
+                    .map((sig) => sig.p_fetchdata({ignoreerrors}))))
                 .filter(f => !!f);    // Note filters out any undefined from errors
             // Return is array result of p_fetchdata which is array of new objs (suitable for storing in keys etc)
         } catch(err) {
@@ -107,7 +108,7 @@ class CommonList extends PublicPrivate {
         }
     }
 
-    async p_push(obj, verbose ) {
+    async p_push(obj ) {
         /*
          Equivalent to Array.push but returns a promise because asynchronous
          Sign and store a object on a list, stores both locally on _list and sends to Dweb
@@ -122,21 +123,21 @@ class CommonList extends PublicPrivate {
             }
             let sig;
             console.assert(this.listpublicurls.length > 0); // Should be set by now
-            await this.p_store(verbose);        // Make sure list is stored before store anything on it.
-            if (verbose) console.log("CL.p_push", obj._urls, "onto", this._urls);
+            await this.p_store();        // Make sure list is stored before store anything on it.
+            debugcl("CL.p_push %o onto %o", obj._urls, this._urls);
             let urls = obj;
             if (obj instanceof SmartDict) {
-                await obj.p_store(verbose);     // Make sure any object is stored
+                await obj.p_store();     // Make sure any object is stored
                 urls = obj._urls;
             }
             if (!(this._master && this.keypair))
                 { // noinspection ExceptionCaughtLocallyJS
                     throw new errors.ForbiddenError("Signing a new entry when not a master list");
                 }
-            sig = await this.p_sign(urls, verbose);
+            sig = await this.p_sign(urls);
             sig.data = obj;                     // Keep a copy of the signed obj on the sig, saves retrieving it again
             this._list.push(sig);               // Keep copy locally on _list
-            await this.p_add(sig, verbose);     // Add to list in dweb
+            await this.p_add(sig);     // Add to list in dweb
             return sig;
         } catch(err) {
             console.log("CL.p_push failed",err.message);
@@ -144,7 +145,7 @@ class CommonList extends PublicPrivate {
         }
     }
 
-    async p_add(sig, verbose) {
+    async p_add(sig) {
         /*
         Add a signature to the Dweb for this list
         Note, there is an assumption that sig.signedby is the same as the commonlist
@@ -155,7 +156,7 @@ class CommonList extends PublicPrivate {
          */
         if (!sig) throw new errors.CodingError("CommonList.p_add is meaningless without a sig");
         if (! utils.intersects(sig.signedby, this._publicurls)) throw new errors.CodingError(`CL.p_add: sig.signedby ${sig.signedby} should overlap with this._publicurls ${this._publicurls}`);
-        return await DwebTransports.p_rawadd(this.listpublicurls, sig, {verbose});
+        return await DwebTransports.p_rawadd(this.listpublicurls, sig);
     }
 
     objbrowser_fields(propname) {
@@ -169,14 +170,14 @@ class CommonList extends PublicPrivate {
 
     // ----- Listener interface ----- see https://developer.mozilla.org/en-US/docs/Web/API/EventTarget for the pattern
 
-    listmonitor({verbose=false, current=false}={}) {
+    listmonitor({current=false}={}) {
         /*
         Add a listmonitor for each transport - note this means if multiple transports support it, then will get duplicate events back if everyone else is notifying all of them.
          */
         DwebTransports.listmonitor(this.listpublicurls, //TODO-SW wont work yet
                 (obj) => {
-                    if (verbose) console.log("listmonitor added",obj,"to",this.listpublicurls);
-                    let sig = new Signature(obj, verbose);
+                    debugcl("listmonitor added %o to %o",obj, this.listpublicurls);
+                    let sig = new Signature(obj);
                     if (this.verify(sig)) { // Ignore if not signed by this node, and verify throws Signing Error if correct list, but not verified
                         if (!this._list.some((othersig) => othersig.signature === sig.signature)) {    // Check not duplicate (esp of locally pushed one
                             this._list.push(sig);
@@ -187,7 +188,7 @@ class CommonList extends PublicPrivate {
                     } else {
                         console.log("Rejected signature: ",sig);
                     }
-                }, {verbose, current});
+                }, {current});
     }
 }
 SmartDict.table2class["cl"] = CommonList;

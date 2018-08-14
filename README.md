@@ -35,8 +35,7 @@ By default each of these examples runs multiple transports, and is smart if it c
 **Transport choice**: You can deselect transports by clicking the Green indicator on an example. 
 To prevent it connecting in the firstplace, you can supply paused=HTTP or paused=IPFS or paused=WEBTORRENT or paused=YJS to the url.
 
-**Verbosity**: You can get debugging output by appending verbose=true to the URLs, 
-this shows up in your console and also (for HTTP) in our server logs.
+**Verbosity**: You can get debugging output by setting localStorage.debug=("dweb-objects:* dweb-transports:*") in your javascript console, you should only have to set this once.
 
 ### Adding to a HTML application
 * Add to your `<HEAD>`

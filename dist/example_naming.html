@@ -24,7 +24,7 @@
         async function p_domain_open(el_li, el_ul, dom) {
             // el is the li, want the ui inside it
             if (el_li.classList.contains("collapsed")) {
-                let kids = await dom.p_getall(verbose);
+                let kids = await dom.p_getall();
                 el_li.classList.remove("collapsed");
                 el_li.classList.add("expanded");
                 el_li.classList.remove("fa-folder");
@@ -145,7 +145,7 @@
                         // noinspection JSIgnoredPromiseFromCall
                         onlogin(event.values); }
                 });
-                await DwebObjects.Domain.p_rootSet({verbose});
+                await DwebObjects.Domain.p_rootSet();
                 console.log("==Login should have finished-== output after here implies async issue ===");
                 let el_root_ul = document.getElementById("treeroot_ul");
                 addsubdomain(el_root_ul, "/", DwebObjects.Domain.root, undefined);
@@ -260,9 +260,9 @@
 
 
 <script type="text/javascript">
+    localStorage.debug = "dweb-transports:* dweb-objects:*";
     // These have to be at global level so they can be found anywhere.
     var searchparams = new URL(window.location.href).searchParams;
-    var verbose = searchparams.get("verbose") || false;  // Anything specified for verbose is true (could truthify buy no need)
     // noinspection JSIgnoredPromiseFromCall
     main();
 </script>

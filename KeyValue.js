@@ -7,8 +7,8 @@ class KeyValue extends SmartDict {
     //TODO-KEYVALUE - incomplete
      */
 
-    constructor(data, verbose, options) {
-        super(data, verbose, options);
+    constructor(data, options) {
+        super(data, options);
         this._dirty = true;
     }
 

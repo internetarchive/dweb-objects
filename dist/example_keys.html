@@ -136,9 +136,9 @@
 <p>See <a href="example_versions.html">example_versions.html</a> for creating a locked version list. </p>
 </div>
 <script type="text/javascript">
+    localStorage.debug = "dweb-transports:* dweb-objects:*";
     // These have to be at global level so they can be found anywhere.
     var searchparams = new URL(window.location.href).searchParams;
-    var verbose = searchparams.get("verbose") || false;  // Anything specified for verbose is true (could truthify buy no need)
     main();
 </script>
 </body>

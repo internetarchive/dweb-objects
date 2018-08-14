@@ -88,7 +88,7 @@ function multihashFrom(url) {
     throw new errors.CodingError(`Cant turn ${url} into a multihash`);
 }
 
-function p_ipfsstart(verbose) {
+function p_ipfsstart() {
     return new Promise((resolve, reject) => {
         ipfs = new IPFS(defaultipfsoptions);
         ipfs.on('ready', () => {
@@ -300,6 +300,7 @@ async function sandbox() {
 }
 
 async function test_ipfs() {
+    localStorage.debug = "dweb-transports:* dweb-objects:*";
     await p_ipfsstart(true);
     //await sandbox();
     await test_httpapi_short();     // No solution: *IPFS BUG* on files.cat; (work around also has bug of adding 14 bytes)

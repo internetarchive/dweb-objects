@@ -14,13 +14,13 @@ class Signature extends SmartDict {
     signedby:   Public URLs of list signing this (list should have a public key)
     Inherits from SmartDict: _acl, _urls
      */
-    constructor(dic, verbose) {
+    constructor(dic) {
         /*
         Create a new instance of Signature
 
         :param dic: data to initialize - see Fields above
          */
-        super(dic, verbose);
+        super(dic);
         this.table = "sig";
     }
 
@@ -51,7 +51,7 @@ class Signature extends SmartDict {
         return this.date.toISOString() + " "+this.urls;
     }
 
-    static async p_sign(commonlist, urls, verbose) {
+    static async p_sign(commonlist, urls) {
         /*
         Sign and date an array of urls, returning a new Signature
 
@@ -61,16 +61,16 @@ class Signature extends SmartDict {
          */
         let date = new Date(Date.now());
         if (!commonlist.stored()) {
-            await commonlist.p_store(verbose);
+            await commonlist.p_store();
         }
-        let sig = new Signature({"date": date, "urls": urls, "signedby": commonlist._publicurls}, verbose);
+        let sig = new Signature({"date": date, "urls": urls, "signedby": commonlist._publicurls});
         sig.signature = commonlist.keypair.sign(sig.signable());
-        //console.assert(sig.verify(commonlist, verbose)) //uncomment for testing
+        //console.assert(sig.verify(commonlist)) //uncomment for testing
         return sig
     }
 
-    verify(commonlist, verbose) {
-        return commonlist.verify(this, verbose);
+    verify(commonlist) {
+        return commonlist.verify(this);
     }
 
     static filterduplicates(arr) {
@@ -85,7 +85,7 @@ class Signature extends SmartDict {
         return arr.filter((x) => (!res[x.urls] && (res[x.urls] = true)))
     }
 
-    async p_fetchdata({verbose=false, ignoreerrors=false} = {}) {
+    async p_fetchdata({ignoreerrors=false} = {}) {
         /*
         Fetch the data related to a Signature, store on .data
 
@@ -96,7 +96,7 @@ class Signature extends SmartDict {
          */
         if (!this.data) {   // Fetch data if have not already fetched it
             try {
-                this.data = await SmartDict.p_fetch(this.urls, verbose); // Resolves to new obj AuthenticationError if can't decrypt
+                this.data = await SmartDict.p_fetch(this.urls); // Resolves to new obj AuthenticationError if can't decrypt
             } catch(err) {
                 if (ignoreerrors) {
                     console.error("Ignoring in Signature.p_fetchdata: ", err.message);

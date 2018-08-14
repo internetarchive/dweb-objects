@@ -1,4 +1,5 @@
 const errors = require('./Errors');
+const debugkeychain = require('debug')('dweb-objects:keychain');
 const CommonList = require("./CommonList");  // Superclass
 const KeyPair = require('./KeyPair'); // Encapsulate public/private key pairs and crypto libraries
 const utils = require('./utils'); // Utility functions
@@ -18,32 +19,32 @@ class KeyChain extends CommonList {
     from SmartDict: _acl, _urls
      */
 
-    constructor(data, verbose, options) {
+    constructor(data, options) {
         /*
         Create a new KeyChain, for parameters see CommonList
          */
-        super(data, verbose, options);
+        super(data, options);
         if (!this._keys) this._keys = []; // Could be overridden by data in super
         this.table = "kc";
     }
 
-    static async p_new(data, key, verbose) {
+    static async p_new(data, key) {
         /*
         Create a new KeyChain object based on a new or existing key.
         Store and add to this.keychains, list any elements already on the KeyChain (relevant for existing keys)
         data, key:  See CommonList for parameters
         resolves to:    KeyChain created
          */
-        let kc = await super.p_new(data, true, key, verbose); // Calls CommonList.p_new -> new KC() -> new CL() and then sets listurls and listpublicurls
+        let kc = await super.p_new(data, true, key); // Calls CommonList.p_new -> new KC() -> new CL() and then sets listurls and listpublicurls
         try {
-            await kc.p_store(verbose);
+            await kc.p_store();
         } catch (err) { // Should be a Transport Error
             throw new errors.AuthenticationError("Unable to login as transport failed")
         }
         // The order here is important - kc has to be on keychains to decrypt the elements, and eventhandler has to be
         // after elements are loaded so cant be inside addkeychains()
         KeyChain.addkeychains(kc);  // Could trigger events - which would then be incomplete, but some of the items retrievd for the list in p_list_then_elements() might need this to be on keychains in order to self-decrypt.
-        await kc.p_list_then_elements({verbose, ignoreerrors: true});
+        await kc.p_list_then_elements({ ignoreerrors: true});
         this.eventHandler.callEventListeners({type: "login", values: kc})
         return kc;
     }
@@ -52,7 +53,7 @@ class KeyChain extends CommonList {
         return KeyPair.KEYTYPESIGNANDENCRYPT;
     }  // Inform keygen
 
-    async p_list_then_elements({verbose=false, ignoreerrors=false}={}) {
+    async p_list_then_elements({ignoreerrors=false}={}) {
         /*
         Subclasses CommonList to store elements in a _keys array.
 
@@ -60,11 +61,11 @@ class KeyChain extends CommonList {
         throws: AuthenticationError if cant decrypt keys
          */
         try {
-            this._keys = await super.p_list_then_elements({verbose, ignoreerrors});
-            if (verbose) console.log("KC.p_list_then_elements Got keys", ...utils.consolearr(this._keys))
+            this._keys = await super.p_list_then_elements({ ignoreerrors});
+            debugkeychain("KC.p_list_then_elements Got keys %o", this._keys)
             return this._keys;
         } catch (err) {
-            console.log("KeyChains.p_list_then_elements: Unable to retrieve keys", err.message);
+            console.warn("KeyChains.p_list_then_elements: Unable to retrieve keys", err.message);
             throw(err);
         }
     }
@@ -80,7 +81,7 @@ class KeyChain extends CommonList {
         return this.keypair.encrypt(data, b64, this);  // data, b64, signer
     }
 
-    decrypt(data, verbose) {
+    decrypt(data) {
         /*
          Decrypt data with this KeyChain - pair of .encrypt()
          Chain is SD.p_fetch > SD.p_decryptdata > ACL|KC.decrypt, then SD.setdata
@@ -98,13 +99,13 @@ class KeyChain extends CommonList {
         throw new errors.CodingError("KeyChain doesnt have an accesskey");
     }
 
-    p_store(verbose) {
+    p_store() {
         /*
         Unlike other p_store this ONLY stores the public version, and sets the _publicurls, on the assumption that the private key of a KeyChain should never be stored.
         Private/master version should never be stored since the KeyChain is itself the encryption root.
         */
         this.dontstoremaster = true;    // Make sure p_store only stores public version
-        return super.p_store(verbose);  // Stores public version and sets _publicurls
+        return super.p_store();  // Stores public version and sets _publicurls
     }
 
     // ====  Stuff to do with managing this.keychains - this could be a separate class at some point ======
@@ -132,7 +133,7 @@ class KeyChain extends CommonList {
         return this.keychains.length ? this.keychains[this.keychains.length - 1] : undefined;
     }
 
-    static keychains_find(dict, verbose) {
+    static keychains_find(dict) {
         /*
         Locate a needed KeyChain on this.keychains by some filter.
 
@@ -142,7 +143,7 @@ class KeyChain extends CommonList {
         return this.keychains.find((kc) => kc.match(dict))  // Returns undefined if none match or keychains is empty, else first match
     }
 
-    static find_in_keychains(dict, verbose) {
+    static find_in_keychains(dict) {
         /*
         Locate a needed KeyChain on this.keychains by some filter.
 
