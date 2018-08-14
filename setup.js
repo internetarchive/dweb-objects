@@ -1,3 +1,4 @@
+localStorage.debug = "dweb-transports dweb-transports:* dweb-objects dweb-objects:*";
 
 // Fake a browser like environment for some tests inc in Node CreateCustomEvent
 const jsdom = require("jsdom");
@@ -52,6 +53,5 @@ async function p_setup() {
     }
 
 }
-localStorage.debug = "dweb-transports:* dweb-objects:*";
 p_setup();
 

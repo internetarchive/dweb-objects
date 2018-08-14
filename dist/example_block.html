@@ -5,6 +5,7 @@
     <!--Note there are copies of this in dweb-transports repo and dweb-transport repo-->
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     <title>DWEB Transports example page</title>
+    <script type="text/javascript">localStorage.debug = "dweb-transports dweb-transports:* dweb-objects dweb-objects:*";</script>
     <script type="text/javascript" src="dweb-transports-bundle.js"></script>
     <!--<script type="text/javascript" src="dweb-serviceworker-proxy-bundle.js"></script><!--ServiceWorker version-->
     <script type="text/javascript" src='https://cloud.tinymce.com/stable/tinymce.min.js'></script><!-- TinyMCE -->
@@ -113,7 +114,6 @@
 </ul>
 
 <script type="text/javascript">
-    localStorage.debug = "dweb-transports:* dweb-objects:*";
     var searchparams = new URL(window.location.href).searchParams;
     main(searchparams.get("url")); //starts a transport, checks its status, and if appropriate to app opens a URL passed
 </script>

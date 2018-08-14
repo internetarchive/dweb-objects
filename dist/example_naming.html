@@ -6,6 +6,7 @@
     <link rel='stylesheet' href='example_styles.css'>
     <link rel='stylesheet' href='https://fonts.googleapis.com/css?family=Roboto'>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css"><!--briefcase etc-->
+    <script type="text/javascript"> localStorage.debug = "dweb-transports dweb-transports:* dweb-objects dweb-objects:*";</script>
     <script type="text/javascript" src="dweb-transports-bundle.js"></script>
     <!--<script type="text/javascript" src="dweb-serviceworker-proxy-bundle.js"></script><!--ServiceWorker version-->
     <script type="text/javascript" src="dweb-objects-bundle.js"></script>
@@ -260,7 +261,6 @@
 
 
 <script type="text/javascript">
-    localStorage.debug = "dweb-transports:* dweb-objects:*";
     // These have to be at global level so they can be found anywhere.
     var searchparams = new URL(window.location.href).searchParams;
     // noinspection JSIgnoredPromiseFromCall

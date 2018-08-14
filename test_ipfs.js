@@ -1,4 +1,5 @@
 //TODO-REPO move this to dweb-transports
+localStorage.debug = "dweb-transports dweb-transports:* dweb-objects dweb-objects:*";
 const IPFS = require('ipfs');
 
 var ipfs;
@@ -300,7 +301,6 @@ async function sandbox() {
 }
 
 async function test_ipfs() {
-    localStorage.debug = "dweb-transports:* dweb-objects:*";
     await p_ipfsstart(true);
     //await sandbox();
     await test_httpapi_short();     // No solution: *IPFS BUG* on files.cat; (work around also has bug of adding 14 bytes)

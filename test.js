@@ -5,7 +5,7 @@ const { JSDOM } = jsdom;        //TODO - figure out what this does, dont underst
 htmlfake = '<!DOCTYPE html></html>';
 const dom = new JSDOM(htmlfake);
 document = dom.window.document;   // Note in JS can't see "document" like can in python
-
+localStorage.debug = "dweb-transports dweb-transports:* dweb-objects dweb-objects:*";
 global.DwebTransports = require('@internetarchive/dweb-transports'); // Manage all Transports that are loaded
 //SEE-OTHER-ADDTRANSPORT
 // Higher level object classes
@@ -34,7 +34,6 @@ require('y-leveldb')(DwebTransports._transportclasses["YJS"].Y); //- can't be th
     // In general it should be possible to comment out failing tests EXCEPT where they provide a value to the next */
 
 async function p_test() {
-    localStorage.debug = "dweb-transports:* dweb-objects:*";
     // TODO-SW get p_test working with service workers or direct
     try {
         //SEE-OTHER-ADDTRANSPORT - note these are options just for testing that override default options for the transport.

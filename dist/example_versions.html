@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <title>Dweb example - Versioning</title>
     <link rel='stylesheet' href='example_styles.css'>
+    <script type="text/javascript">localStorage.debug = "dweb-transports dweb-transports:* dweb-objects dweb-objects:*";</script>
     <script type="text/javascript" src="dweb-transports-bundle.js"></script>
     <!--<script type="text/javascript" src="dweb-serviceworker-proxy-bundle.js"></script><!--ServiceWorker version-->
     <script type="text/javascript" src="dweb-objects-bundle.js"></script>
@@ -217,7 +218,6 @@ TODO Listmonitor on versions, and on locks, and existing lists
 
 <script type="text/javascript">
     // These have to be at global level so they can be found anywhere.
-    localStorage.debug = "dweb-transports:* dweb-objects:*";
     var searchparams = new URL(window.location.href).searchParams;
     var url = searchparams.get("url");   //Will load after login, TODO warn user to login if this is set.
     console.log("url=",url);
