@@ -14,9 +14,9 @@
     "@internetarchive/dweb-transports": "latest",
     "custom-event": "latest",
     "libsodium-wrappers": "git+https://git@github.com/mitra42/libsodium.js.git",
-    "multihashes": "latest",
+    "multihashes": "^0.4.14",
     "sha.js": "latest",
-    "webpack": "^4.16.3"
+    "webpack": "^4.16.5"
   },
   "description": "Internet Archive Decentralized Web Transports Library",
   "devDependencies": {
