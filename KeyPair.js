@@ -68,7 +68,7 @@ class KeyPair extends SmartDict {
             seed:       32 byte string or buffer
         #Backported to PY 20180703
          */
-        debugkeypair("KP._key_setter");
+        //debugkeypair("KP._key_setter");
         if (typeof value === "string" || Array.isArray(value)) {
             this._importkey(value);
         } else {    // Should be object, or maybe undefined ?

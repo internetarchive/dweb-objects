@@ -381,7 +381,7 @@ class Domain extends KeyValueTable {
         */
         //TODO-NAME add ipfs address and ideally ipns address to archiveOrgDetails record
         //p_new should add registrars at whichever compliant transports are connected (YJS, HTTP)
-        Domain.root = await Domain.p_new({_acl: archiveadminkc, name: "", keychain: archiveadminkc}, true, {passphrase: pass2+"/"}, [], {   //TODO-NAME will need a secure root key and a way to load here securely
+        Domain.root = await Domain.p_new({_acl: archiveadminkc, name: "/", keychain: archiveadminkc}, true, {passphrase: pass2+"/"}, [], {   //TODO-NAME will need a secure root key and a way to load here securely
             arc: await Domain.p_new({_acl: archiveadminkc, keychain: archiveadminkc},true, {passphrase: pass2+"/arc"}, [], { // /arc domain points at our top level resolver.
                 "archive.org": await Domain.p_new({_acl: archiveadminkc, keychain: archiveadminkc}, true, {passphrase: pass2+"/arc/archive.org"}, [], {
                     ".": await Leaf.p_new({urls: ["https://dweb.me/archive/archive.html"], mimetype: "text/html",
