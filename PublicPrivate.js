@@ -23,7 +23,7 @@ class PublicPrivate extends SmartDict {
     See API.md for how p_fetch, p_decrypt, _setdata, _setproperties, __setattr__ work together to retrieve
     */
 
-    constructor(data, verbose, options) {
+    constructor(data, options) {
         /*
             Create a new instance of CommonList
             Note that in almost all cases should use p_new rather than constructor as constructor cant setup listurls and listpublicurls
@@ -32,7 +32,7 @@ class PublicPrivate extends SmartDict {
             data        dict of fields
             options     dict that overrides any fields of data
          */
-        super(data, verbose, options);
+        super(data, options);
         this._listeners = {};
         if (typeof this._master === "undefined")
             this._master = this.keypair && this.keypair.has_private()  // Note this must be AFTER _setkeypair since that sets based on keypair found and _p_storepublic for example wants to force !master
@@ -44,14 +44,14 @@ class PublicPrivate extends SmartDict {
         this.table = "pp";
     }
 
-    static async p_new(data, master, keypair, verbose, options) {
+    static async p_new(data, master, keypair, options) {
         if (!options)
             options = {};
         if (typeof master !== undefined)    // Set master if its defined, true or false, but not if its undefined
             options._master = master;
         if (typeof keypair !== "undefined")
             options.keypair = keypair;
-        return new this(data, verbose, options); // Note will call superclass if called from there.
+        return new this(data, options); // Note will call superclass if called from there.
     }
 
     keytype() {
@@ -74,15 +74,14 @@ class PublicPrivate extends SmartDict {
         :param name: string - name of attribute to set
         :param value: anything but usually string from retrieving - what to set name to.
          */
-        let verbose = false;
         if (name === "keypair") {
-            this._setkeypair(value, verbose);
+            this._setkeypair(value);
         } else {
             super.__setattr__(name, value);
         }
     }
 
-    _setkeypair(value, verbose) {
+    _setkeypair(value) {
         /*
         Set the keypair attribute, converts value into KeyPair if not already
         See API.md for how fits into calling sequence
@@ -92,9 +91,9 @@ class PublicPrivate extends SmartDict {
          */
         if (value && !(value instanceof KeyPair)) {
             if (value["table"]) {
-                value = SmartDict._sync_after_fetch(value, [], verbose) // Its not clear how this is used
+                value = SmartDict._sync_after_fetch(value, []) // Its not clear how this is used
             } else {
-                value = new KeyPair({key: value}, verbose) // Note ignoring keytype for now
+                value = new KeyPair({key: value}) // Note ignoring keytype for now
             }
         }
         this.keypair = value;
@@ -131,25 +130,25 @@ class PublicPrivate extends SmartDict {
         return dd;
     }
 
-    async _p_storepublic(verbose) {
+    async _p_storepublic() {
         // Store public version, dont encrypt on storing as want public part to be publicly visible (esp for Domain)
-        this._publicurls = await DwebTransports.p_rawstore( this._getdata({publicOnly: true, encryptIfAcl:false}), {verbose});
+        this._publicurls = await DwebTransports.p_rawstore( this._getdata({publicOnly: true, encryptIfAcl:false}));
     }
     storedpublic() {
         return this._publicurls.length > 0
     }
 
-    async p_store(verbose) {
+    async p_store() {
         /*
             Store on Dweb, if _master will ensure that stores a public version as well, and saves in _publicurls
             Will store master unless dontstoremaster is set.
             Subclassed in KeyValueTable
          */
         if (this._master && !this.storedpublic()) {
-            await this._p_storepublic(verbose); // Stores a public copy and sets _publicurls
+            await this._p_storepublic(); // Stores a public copy and sets _publicurls
         }
         if (!(this._master && this.dontstoremaster)) {
-            await super.p_store(verbose);    // SmartDict.store(verbose)
+            await super.p_store();    // SmartDict.store()
         }
     }
 
@@ -160,7 +159,7 @@ class PublicPrivate extends SmartDict {
         return (!this._master || this._publicurls.length) && ((this._master && this.dontstoremaster) || super.stored())
     }
 
-    async p_sign(urls, verbose) {
+    async p_sign(urls) {
         /*
         Create a signature -
         Note - its normally better to use p_push as stores signature and puts on _list and on Dweb
@@ -170,12 +169,12 @@ class PublicPrivate extends SmartDict {
         */
         if (!urls || !urls.length) throw new errors.CodingError("Empty url is a coding error");
         if (!this._master) throw new errors.ForbiddenError("Must be master to sign something");
-        let sig = await Signature.p_sign(this, urls, verbose); //returns a new Signature
+        let sig = await Signature.p_sign(this, urls); //returns a new Signature
         if (!sig.signature) throw new errors.CodingError("Must be a signature");
         return sig
     }
 
-    verify(sig, verbose) {
+    verify(sig) {
         /*
         Check that a signature is valid for this list, i.e. signed by this keypair.
 

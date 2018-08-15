@@ -35,8 +35,7 @@ By default each of these examples runs multiple transports, and is smart if it c
 **Transport choice**: You can deselect transports by clicking the Green indicator on an example. 
 To prevent it connecting in the firstplace, you can supply paused=HTTP or paused=IPFS or paused=WEBTORRENT or paused=YJS to the url.
 
-**Verbosity**: You can get debugging output by appending verbose=true to the URLs, 
-this shows up in your console and also (for HTTP) in our server logs.
+**Verbosity**: You can get debugging output by setting localStorage.debug=("dweb-objects:* dweb-transports:*") in your javascript console, you should only have to set this once.
 
 ### Adding to a HTML application
 * Add to your `<HEAD>`
@@ -55,12 +54,15 @@ See [API.md](./API.md) for the detailed API.
 
 ### Incorporation in a Node application
 
-`"@internetarchive/dweb-transports": "latest",`
-`"@internetarchive/dweb-objects": "latest",`
-to your package.json file in the dependencies section. 
-* `npm install @internetarchive/dweb-objects`  will install the dependencies including IPFS & WebTorrent and dweb-transports
+Add to `package.json` in the `dependencies` section.
+```
+"@internetarchive/dweb-transports": "latest",
+"@internetarchive/dweb-objects": "latest",
+```
 
-In this order.
+* `npm install`  will then install `dweb-objects` and `dweb-transports` which currently includes `IPFS`, `WebTorrent`, `Gun`, `YJS`
+
+In your application javascript, in this order.
 ```
 const DwebTransports = require('@internetarchive/dweb-transport') #adds the transports
 const DwebObjects = require('@internetarchive/dweb-objects;)      #adds the object library

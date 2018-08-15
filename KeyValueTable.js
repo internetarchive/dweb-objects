@@ -1,3 +1,4 @@
+const debugkvt = require('debug')('dweb-objects:keyvaluetable');
 const SmartDict = require("./SmartDict");   // _AccessControlListEntry extends this
 const PublicPrivate = require("./PublicPrivate"); //for extends
 const utils = require('./utils'); // Utility functions
@@ -23,8 +24,8 @@ class KeyValueTable extends PublicPrivate {
 
      */
 
-    constructor(data, verbose, options) {
-        super(data, verbose, options);
+    constructor(data, options) {
+        super(data, options);
         this.table = "keyvaluetable"; // Superclasses may override
         if (typeof this._autoset === "undefined") {
             // If we haven't explicitly set _autoset then set if it looks like we are a master with a table to connect to.
@@ -33,7 +34,7 @@ class KeyValueTable extends PublicPrivate {
         this._map = this._map || {};
     }
 
-    static async p_new(data, master, key, verbose, options) {
+    static async p_new(data, master, key, options) {
         /*
             options: {
             keyvaluetable   Which table at the DB to store this in
@@ -43,10 +44,10 @@ class KeyValueTable extends PublicPrivate {
         delete options.keyvaluetable;
         const seedurls = options.seedurls || [];
         delete options.seedurls;
-        const obj = await super.p_new(data, master, key, verbose, options);
+        const obj = await super.p_new(data, master, key, options);
         // Should set this._autoset to true if and only if master && urls set in data or options
         if (master && !(obj.tablepublicurls && obj.tablepublicurls.length)) {
-            const res = await DwebTransports.p_newtable(obj, keyvaluetable, {verbose});
+            const res = await DwebTransports.p_newtable(obj, keyvaluetable);
             obj.tableurls = res.privateurls;
             obj.tablepublicurls = res.publicurls.concat(seedurls);
             obj._autoset = true;
@@ -75,7 +76,7 @@ class KeyValueTable extends PublicPrivate {
             return JSON.stringify(mapVal)
         }
     }
-    _mapFromStorage(storageVal, verbose=false) {
+    _mapFromStorage(storageVal) {
         /*
         Convert a value as stored in the storage dictionary into a value suitable for the map. Pair of _storageFromMap.
          */
@@ -85,7 +86,7 @@ class KeyValueTable extends PublicPrivate {
                 return obj.map(m => this._storageFromMap(m))
             } else if (typeof(obj) === "object") {
                 if (obj["table"]) {
-                    obj = SmartDict._sync_after_fetch(obj, [], verbose);   // Convert object to subclass of SmartDict, note cant decrypt as sync
+                    obj = SmartDict._sync_after_fetch(obj, []);   // Convert object to subclass of SmartDict, note cant decrypt as sync
                 }
                 //else If no "table" field, then just return the object.
             }
@@ -107,7 +108,7 @@ class KeyValueTable extends PublicPrivate {
 
 
 
-    async p_set(name, value, {verbose=false, publicOnly=false, encryptIfAcl=true, fromNet=false}={}) {
+    async p_set(name, value, {publicOnly=false, encryptIfAcl=true, fromNet=false}={}) {
         /* Set a value to a named key in the table setup during creating of this KeyValueTable
             name            of key to store under
             value           value to store
@@ -120,7 +121,7 @@ class KeyValueTable extends PublicPrivate {
         //TODO-KEYVALUE-SIGN these sets need to be signed if the transport overwrites the previous, rather than appending see dweb-objects/issue#2
         //TODO-KEYVALUE-SIGN the difference is that if appended, then an invalid signature (if reqd) in the value would cause it to be discarded. see dweb-objects/issue#2
         if (this._autoset && !fromNet && (this._map[name] !== value)) {
-            await DwebTransports.p_set(this.tableurls, name, this._storageFromMap(value, {publicOnly, encryptIfAcl}), {verbose}); // Note were not waiting for result but have to else hit locks
+            await DwebTransports.p_set(this.tableurls, name, this._storageFromMap(value, {publicOnly, encryptIfAcl})); // Note were not waiting for result but have to else hit locks
         }
         if (!((value instanceof PublicPrivate) && this._map[name] && this._map[name]._master)) {
             // Dont overwrite the name:value pair if we already hold the master copy. This is needed for Domain, but probably generally useful
@@ -129,26 +130,26 @@ class KeyValueTable extends PublicPrivate {
         }
     }
     _updatemap(res) {
-        Object.keys(res).map(key => { try { this._map[key] = this._mapFromStorage(res[key])} catch(err) { console.log("Not updating",key)} } );
+        Object.keys(res).map(key => { try { this._map[key] = this._mapFromStorage(res[key])} catch(err) { console.warn("Not updating", key, err.message)} } );
     }
-    async p_get(keys, verbose) {
+    async p_get(keys) {
         /*  Get the value stored at a key
         keys:   single key or array of keys
         returns:    single result or dictionary, will convert from storage format
          */
         if (!Array.isArray(keys)) { // Handle single by doing plural and returning the key
-            return (await this.p_get([keys], verbose))[keys]
+            return (await this.p_get([keys]))[keys]
         }
         if (!keys.every(k => this._map[k])) {
             // If we dont have all the keys, get from transport
-            const res = await DwebTransports.p_get(this.tablepublicurls, keys, {verbose});
+            const res = await DwebTransports.p_get(this.tablepublicurls, keys);
             this._updatemap(res);
         }
         // Return from _map after possibly updating it
         return utils.keyFilter(this._map, keys);
     }
 
-    async p_getMerge(keys, verbose) {
+    async p_getMerge(keys) {
         /*
         Get the value of a key, but if there are multiple tablepublicurls then check them all, and use the most recent value
         This is only going to work if the values stored are signed and dated .
@@ -160,12 +161,12 @@ class KeyValueTable extends PublicPrivate {
         if (Array.isArray(keys)) {
             const res = {};
             const self = this;
-            await Promise.all(keys.map((n) => { res[n] = self.p_getMerge(n, verbose)}));    // this was p_get but that looked wrong, changed to p_getMerge
+            await Promise.all(keys.map((n) => { res[n] = self.p_getMerge(n)}));    // this was p_get but that looked wrong, changed to p_getMerge
             return res;
         }
         if (this._map[keys])
             return this._map[keys]; // If already have a defined result then return it (it will be from this session so reasonable to cache)
-        const rr = (await Promise.all(this.tablepublicurls.map(u => DwebTransports.p_get([u], keys, {verbose}).catch((err) => undefined))))
+        const rr = (await Promise.all(this.tablepublicurls.map(u => DwebTransports.p_get([u], keys).catch((err) => undefined))))
             .map(r => this._mapFromStorage(r))
         // Errors in above will result in an undefined in the res array, which will be filtered out.
         // res is now an array of returned values in same order as tablepublicurls
@@ -177,64 +178,64 @@ class KeyValueTable extends PublicPrivate {
         return value;
     }
 
-    async p_keys(verbose) {
+    async p_keys() {
         /*
         returns array of all keys
          */
-        return await DwebTransports.p_keys(this.tablepublicurls, {verbose})
+        return await DwebTransports.p_keys(this.tablepublicurls)
     }
-    async p_getall(verbose) {
+    async p_getall() {
         /*
         returns dictionary of all keys
          */
-        const res = await DwebTransports.p_getall(this.tablepublicurls, verbose);
+        const res = await DwebTransports.p_getall(this.tablepublicurls);
         this._updatemap(res);
         return this._map;
     }
 
-    async p_delete(key, {fromNet=false, verbose=false}={}) {
+    async p_delete(key, {fromNet=false}={}) {
         delete this._map[key]; // Delete locally
         if (!fromNet) {
-            await DwebTransports.p_delete(this.tablepublicurls, key, {verbose});    // and remotely.
+            await DwebTransports.p_delete(this.tablepublicurls, key);    // and remotely.
         }
     }
     //get(name, default) cant be defined as overrides this.get()
 
     // ----- Listener interface ----- see https://developer.mozilla.org/en-US/docs/Web/API/EventTarget for the pattern
-    monitor({verbose=false, current=false}={}) {
+    monitor({current=false}={}) {
         /*
         Add a monitor for each transport - note this means if multiple transports support it, then will get duplicate events back if everyone else is notifying all of them.
         Note monitor() is synchronous, so it cant do asynchronous things like connecting to the underlying transport
         Stack: KVT()|KVT.p_new => KVT.monitor => (a: DwebTransports.monitor => YJS.monitor)(b: dispatchEvent)
          */
-        if (verbose) console.log("Monitoring", this.tablepublicurls);
+        debugkvt("Monitoring %o", this.tablepublicurls);
         DwebTransports.monitor(this.tablepublicurls, //TODO-SW this wont work with service workers yet,
             (event) => {    // event of form {type, key, value} with value being an obj, so already done JSON.parse (see YJS for example)
-                if (verbose) console.log("KVT monitor",event,this.tablepublicurls);
+                debugkvt("KVT monitor %o %o",event,this.tablepublicurls);
                 switch (event.type) {
                     case "set": // YJS mapped from ad
-                        this.p_set(event.key, this._mapFromStorage(event.value), {fromNet: true, verbose: verbose}); // Loop broken in set if value unchanged
+                        this.p_set(event.key, this._mapFromStorage(event.value), {fromNet: true}); // Loop broken in set if value unchanged
                         break;
                     case "delete":
                         if (!["tablepublicurls", "tableurls"].includes(event.key)) { //Potentially damaging, may need to check other fields
-                            this.p_delete(event.key, {fromNet: true, verbose: verbose});
+                            this.p_delete(event.key, {fromNet: true});
                         }
                         break;
                 }
                 this.dispatchEvent(new CustomEvent(event.type, {target: this, detail: event}));   // Pass event on to application after updating local object
             },
-            {verbose, current});
+            {current});
     }
 
-    static async p_test(verbose) {
-        if (verbose) console.log("KeyValueTable testing starting");
+    static async p_test() {
+        console.log("KeyValueTable testing starting");
         try {
-            let masterobj = await this.p_new({name: "TEST KEYVALUETABLE", _allowunsafestore: true}, true, {passphrase: "This is a test this is only a test of VersionList"}, verbose, { keyvaluetable: "TESTTABLENAME"});
-            await masterobj.p_set("address","Nowhere", verbose);
-            let publicobj = await SmartDict.p_fetch(masterobj._publicurls, verbose);
+            let masterobj = await this.p_new({name: "TEST KEYVALUETABLE", _allowunsafestore: true}, true, {passphrase: "This is a test this is only a test of VersionList"}, { keyvaluetable: "TESTTABLENAME"});
+            await masterobj.p_set("address","Nowhere");
+            let publicobj = await SmartDict.p_fetch(masterobj._publicurls);
             await publicobj.p_getall(); // Load from table
             console.assert(publicobj._map["address"] === "Nowhere"); // Shouldnt be set yet
-            await masterobj.p_set("address","Everywhere", verbose);
+            await masterobj.p_set("address","Everywhere");
             await delay(500);
             if (await DwebTransports.p_urlsValidFor(masterobj.tablepublicurls, "monitor").length) {
                 console.assert(publicobj._map["address"] === "Everywhere"); // Should be set after allow time for monitor event

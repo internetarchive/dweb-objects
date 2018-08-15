@@ -1,3 +1,4 @@
+const debugsmartdict = require('debug')('dweb-objects:smartdict');
 const errors = require('./Errors');
 const utils = require('./utils'); // Utility functions
 // Depends on var DwebTransports being set externally - its done this way so that both direct and ServiceWorker/Proxy can be used
@@ -20,7 +21,7 @@ class SmartDict {
     table   Name of class as looked up in DwebObjects.table2class
      */
 
-    constructor(data, verbose, options) {
+    constructor(data, options) {
         /*
         Creates and initialize a new SmartDict.
 
@@ -49,7 +50,9 @@ class SmartDict {
             }
         }
     }
-
+    _name() {
+        return this.name || typeof(this); //TODO-DEBUG find a better way to do class in webpack
+    }
     stored() {
         /*
         Check if stored (Note overridden in KeyValue to use a _dirty flag)
@@ -130,7 +133,7 @@ class SmartDict {
         this._setproperties(value);
     }
 
-    async p_store(verbose) {
+    async p_store() {
         /*
         Store the data on Dweb, if it has not already been, stores any urls in _url field
         Resolves to	obj
@@ -140,9 +143,9 @@ class SmartDict {
             if (this.stored())
                 return this;  // No-op if already stored, use dirty() if change after retrieved
             let data = this._getdata();
-            if (verbose) console.log("SmartDict.p_store data=", data);
-            this._urls = await DwebTransports.p_rawstore(data, {verbose});
-            if (verbose) console.log("SmartDict.p_store urls=", this._urls);
+            debugsmartdict("SmartDict.p_store data=%o", data);
+            this._urls = await DwebTransports.p_rawstore(data);
+            debugsmartdict("SmartDict.p_store urls=%o", this._urls);
             return this;
         } catch (err) {
             console.log("SmartDict p_store failed");
@@ -168,12 +171,12 @@ class SmartDict {
         })
     }
 
-    copy(verbose) {
+    copy() {
         /*
         Copy a SmartDict or subclass, will treat "this" as a dict and add to fields, note will shallow copy, not deep copy.
         returns: new instance of SmartDict or subclass
         */
-        return new this.constructor(this, verbose);
+        return new this.constructor(this);
     }
 
     objbrowser_createElement(tag, attrs, children) {        // Note arguments is set to tag, attrs, child1, child2 etc
@@ -201,11 +204,11 @@ class SmartDict {
         if (typeof obj === "undefined") // If dont specify check source, which may also be undefined, but use if there.
             obj = el.source || el.getAttribute("source"); // Note el.source wont work for elements
         if (Array.isArray(obj) && typeof obj[0] === "string")
-            obj = await SmartDict.p_fetch(obj, verbose);
+            obj = await SmartDict.p_fetch(obj);
         else if (typeof obj === "string")
-            obj = await SmartDict.p_fetch([obj], verbose);
+            obj = await SmartDict.p_fetch([obj]);
         //else // Expecting its subclass of SmartDict or otherwise has a p_objbrowser method
-        await obj.p_objbrowser(el,{maxdepth: 2, verbose: false});    //Could pass args here but this comes from UI onclick
+        await obj.p_objbrowser(el,{maxdepth: 2});    //Could pass args here but this comes from UI onclick
         return false;
     }
     objbrowser_urlarray(el, name, arr, {links=false}={}) {
@@ -246,7 +249,7 @@ class SmartDict {
         let fieldtypes = { _acl: "obj", _urls: "urlarray", table: "str", name: "str" } // Note Name is not an explicit field, but is normally set
         return fieldtypes[propname];
     }
-    async p_objbrowser(el, {maxdepth=2, verbose=false}={}) { // Note This could be sync, but subclassing is async
+    async p_objbrowser(el, {maxdepth=2}={}) { // Note This could be sync, but subclassing is async
         //TODO-OBJBROWSER empty values & condition on option
         if (typeof el === 'string') { el = document.getElementById(el); }
         for (let propname in this) {
@@ -283,7 +286,7 @@ class SmartDict {
             }
         }
     }
-    static _sync_after_fetch(retrievedobj, urls, verbose) {
+    static _sync_after_fetch(retrievedobj, urls) {
         /*
          Turn a data structure retrieved from transport into a class based on retrievedobj[“table”]
         retrievedobj	An object as retrieved from the transport
@@ -304,11 +307,11 @@ class SmartDict {
         if (urls.length) {
             retrievedobj._urls = urls;                         // Save where we got it - preempts a store - must do this after decrypt and before constructor as e.g KVT sets monitor if _urls is set
         }
-        return new cls(retrievedobj, verbose);
+        return new cls(retrievedobj);
         // Returns new object that should be a subclass of SmartDict
 
     }
-    static async _after_fetch(maybeencrypted, urls, verbose) {
+    static async _after_fetch(maybeencrypted, urls) {
         /* Takes a structure after JSON.parse that might be encrypted, tried to decrypt
         raises: AuthenticationError if can't decrypt
          */
@@ -324,11 +327,11 @@ class SmartDict {
         if (!((cls === SmartDict) || (cls.prototype instanceof SmartDict))) { // noinspection ExceptionCaughtLocallyJS
             throw new errors.ForbiddenError("Avoiding data driven hacks to other classes - seeing " + table);
         }
-        let decrypted = await cls.p_decrypt(maybeencrypted, verbose);    // decrypt - may return string or obj , note it can be subclassed for different encryption
+        let decrypted = await cls.p_decrypt(maybeencrypted);    // decrypt - may return string or obj , note it can be subclassed for different encryption
         if (urls.length) {
             decrypted._urls = urls;                         // Save where we got it - preempts a store - must do this after decrypt and before constructor as e.g KVT sets monitor if _urls is set
         }
-        return new cls(decrypted, verbose);
+        return new cls(decrypted);
         // Returns new object that should be a subclass of SmartDict
     }
     //TODO-PATH notes below were written before Domain.js was built, better approach now would be to follow approach in Domain.js for "resolve" so that can have a Leaf be/point to a SmartDict (or other object) and then resolve a path in it
@@ -338,7 +341,7 @@ class SmartDict {
     //TODO-PATH see https://app.asana.com/0/235474089595967/476882458177199
     //TODO-PATH try uploading a directory adn using as test /ipfs/QmbdBWeoke5hyf1NDUV9Bee5YWZcFTRqtc3M17ntQ4ZsKv
 
-    static async p_fetch(urls, verboseOrOpts) {
+    static async p_fetch(urls, opts={}) {
         /*
         Fetches the object from Dweb, passes to p_decrypt in case it needs decrypting,
         and creates an object of the appropriate class and passes data to _setdata
@@ -348,19 +351,11 @@ class SmartDict {
         :throws: TransportError if url invalid, ForbiddenError if cant decrypt
 
          */
-        let opts;
-        if (typeof verboseOrOpts !== "object") {
-            opts = {verbose: verboseOrOpts}; // Assume its old style "verbose"
-        } else {
-            opts = verboseOrOpts;
-        }
-        let verbose = opts.verbose;
-
         try {
-            if (verbose) console.log("SmartDict.p_fetch", urls);
+            debugsmartdict("SmartDict.p_fetch %o", urls);
             let data = await DwebTransports.p_rawfetch(urls, opts);  // Fetch the data Throws TransportError immediately if url invalid, expect it to catch if Transport fails
             let maybeencrypted = utils.objectfrom(data);         // Parse JSON (dont parse if p_fetch has returned object (e.g. from KeyValueTable
-            return await this._after_fetch(maybeencrypted, urls, verbose); // AuthenticationError if can't decrypt
+            return await this._after_fetch(maybeencrypted, urls); // AuthenticationError if can't decrypt
             // Returns new object that should be a subclass of SmartDict
         } catch(err) {
             console.log(`cant fetch and decrypt ${urls}`);
@@ -368,7 +363,7 @@ class SmartDict {
         }
     }
 
-    static async p_decrypt(data, verbose) {
+    static async p_decrypt(data) {
         /*
          This is a hook to an upper layer for decrypting data, if the layer isn't there then the data wont be decrypted.
          Chain is SD.p_fetch > SD.p_decryptdata > ACL|KC.decrypt, then SD.setdata
@@ -378,7 +373,7 @@ class SmartDict {
          :raises: AuthenticationError if can't decrypt
          */
         if (this.decryptcb) {
-            return await this.decryptcb(data, verbose);
+            return await this.decryptcb(data);
         }
     }
 
@@ -388,7 +383,7 @@ class SmartDict {
         The callback should return a promise.
         raises: AuthenticationError if can't decrypt
 
-        cb(encrypteddata, verbose) => resolves to data
+        cb(encrypteddata) => resolves to data
          */
         this.decryptcb = cb;
     }

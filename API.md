@@ -49,11 +49,7 @@ We use a naming convention that anything starting “p_” returns a promise so 
 Ideally functions should take a String, Buffer or where applicable Object as parameters with automatic conversion. 
 And anything that takes a URL should take either a string or parsed URL object. 
 
-The verbose parameter is a boolean that is an indicator of a need to output to the console. Normally it will be passed down to called functions and default to false.
-
 Fields starting with "_" are by convention not stored. 
-
-Note: I am gradually (April2018) changing the API to take an opts {} dict which includes verbose as one field. This process is incomplete, but I’m happy to see it accelerated if there is any code built on this, just let mitra@archive.org know.
 
 ## Creating new Subclasses
 This library is intended to make it easy to create highly functional Dweb classes without writing/maintaining
@@ -144,7 +140,7 @@ table|"sd", subclasses each have their own `table` code
                 * _setproperties store on object
                     * __ setattr__ store a specific attribute (can convert data types in subclasses)
 
-##### new SmartDict (data, verbose, options)
+##### new SmartDict (data, options)
 Creates and initialize a new SmartDict. 
 ```
 data        String|Object, If a string (typically JSON), then pass to Transport.loads first. 
@@ -188,7 +184,7 @@ Stores data, subclass this if the data should be interpreted as its stored.
 value        Object, or JSON string to load into object.
 ```
 
-##### async p_store(verbose)
+##### async p_store()
 Store the data on Dweb, if it hasn’t already been.
 It stores the urls in _urls 
 ```
@@ -203,13 +199,13 @@ dict:           dictionary of fields to match, fields starting “.” are treat
 Returns:        true if matches
 ```
 
-##### copy (verbose)
+##### copy ()
 Copy a SmartDict or subclass, will treat "this" as a dict and add to fields, note will shallowcopy, not deep copy.
 ```
 returns:        new instance of SmartDict or subclass
 ```
 
-##### p_objbrowser(el, {maxdepth=2, verbose=false}={})
+##### p_objbrowser(el, {maxdepth=2}={})
 Used by the ObjectBrowser to display an object for debugging, 
 it includes many private functions TODO document them!
 ```
@@ -218,7 +214,7 @@ maxdepth    Not currently supported but limits depth of recursion
 ```
 
 
-##### static _sync_after_fetch (retrievedobj, urls, verbose)
+##### static _sync_after_fetch (retrievedobj, urls)
 Turn a data structure retrieved from transport into a class based on retrievedobj[“table”], 
 can be synchronous because doesnt allow for encrypted objects.
 ```
@@ -226,24 +222,24 @@ retrievedobj An object as retrieved from the transport
 urls         set to _urls field to show where retrieved from
 ```
 
-##### static async _after_fetch (maybeencrypted, urls, verbose)
+##### static async _after_fetch (maybeencrypted, urls)
 Turn a data structure retrieved from transport into a class based on retrievedobj[“table”], object can be encrypted so its asynchronously.
 ```
 maybeencrypted  A object retrieved from the transport that might be encrypted
 urls            set to _urls field to show where retrieved from
 ```
 
-##### static async p_fetch (urls, verboseOrOpts)
+##### static async p_fetch (urls, opts)
 Fetches the object from Dweb, passes to p_decryp[1]t in case it needs decrypting, and creates an object of the appropriate class and passes data to _setdata
 This should not need subclassing, (subclass _setdata or p_decrypt or _sync_after_fetch or _afterfetch instead).
 ```
 urls        Array of urls to fetch
-verboseOrOpts   boolean (verbose) or dictionary of options to pass to p_rawfetch
+opts        dictionary of options to pass to p_rawfetch
 resolves:   New object - e.g. StructuredBlock or MutableBlock
 throws:     TransportError if url invalid, ForbiddenError if decryption fails.
 ```
 
-##### static async p_decrypt(data, verbose)
+##### static async p_decrypt(data)
 This is a hook to an upper layer (ACL) for decrypting data, if the layer isn't there then the data wont be decrypted.
 ```
 data:   possibly encrypted object produced from json stored on Dweb
@@ -255,7 +251,7 @@ raises: AuthenticationError if can't decrypt
 Takes a callback that should be used to decrypt data (see AccessControlList) for setting it.
 The callback should return a promise.
 ```
-cb(encrypteddata, verbose) => resolves to data
+cb(encrypteddata) => resolves to data
 ```
 
 ## List Layer
@@ -296,7 +292,7 @@ _key = {
 }
 ```
 
-##### new KeyPair (data, verbose)
+##### new KeyPair (data)
 Create a new KeyPair
 ```
 data: data to initialize with (see Fields above)
@@ -330,7 +326,7 @@ Check if the public version of this object has been stored (i.e. public keys etc
 returns:   true if the public version is stored (i.e. _publicurls is set)
 ```
 
-##### async p_store(verbose)
+##### async p_store()
 Store public and private versions of this object if not already stored
 
 ##### preflight(dd)
@@ -341,7 +337,7 @@ dd:        dict of fields, maybe processed by subclass
 returns:   dict of fields suitable for storing in Dweb
 ```
 
-##### static _keyfromseed(seed, keytype, verbose)
+##### static _keyfromseed(seed, keytype)
 Generate a key from a seed,
 ```
 seed:      uint8array or binary string (not urlsafebase64) to generate key from
@@ -402,7 +398,7 @@ return:         Data decrypted to outputformat
 throws:         EnryptionError if no encrypt.privateKey, CodingError if !data||!signer
 ```
 
-##### sign(signable, verbose)
+##### sign(signable)
 Sign and date a signable string using public key function. 
 Pair of "verify()"
 ```
@@ -483,7 +479,7 @@ signedby:           Public urls of list signing this (list should have a public 
 Inherits from SmartDict: _acl, _urls
 ```
 
-##### new Signature (dic, verbose)
+##### new Signature (dic)
 Create a new instance of Signature
 ```
 dic:         data to initialize - see Fields above
@@ -508,7 +504,7 @@ Return a string suitable for signing - (date + url)
 return:        signable string (date in isoformat + url)
 ```
 
-##### static async p_sign (commonlist, urls, verbose)
+##### static async p_sign (commonlist, urls)
 Sign and date a url.
 ```
 commonlist:    Subclass of CommonList containing a private key to sign with.
@@ -516,7 +512,7 @@ urls:          Array of urls of item being signed
 resolves to:   Signature (dated with current time on browser)
 ```
 
-##### verify(commonlist, verbose) 
+##### verify(commonlist) 
 Pass signature to commonlist for verification
 ```
 commonlist:     Subclass of CommonList containing a private key to verify with.
@@ -531,7 +527,7 @@ returns:  [Signature*] containing only the first occuring instance of each signa
         (note first in array, not necessarily first by date)
 ```
 
-##### async p_fetchdata({verbose=false, ignoreerrors=false} = {})
+##### async p_fetchdata({ignoreerrors=false} = {})
 Fetch the data related to a Signature, store on .data
 ```
 ignoreerrors:   Passed if should ignore any failures, especially failures to decrypt
@@ -553,14 +549,14 @@ dontstoremaster true if should not store master key
 _listeners      Any event listeners  //TODO-LISTENER - maybe move to SmartDict as generically useful
 ```
 
-##### new PublicPrivate (data, verbose, options)
+##### new PublicPrivate (data, options)
 Create a new instance of CommonList (but see p_new)
 ```
 data:     json string or dict to load fields from
 options:  dict that overrides any fields of data
 ```
 
-##### static async p_new(data, master, key, verbose, options)
+##### static async p_new(data, master, key, options)
 Create a new PublicPrivate, just calls new PublicPrivate, 
 All subclases should implement p_new and call super.p_new so that this gets done. 
 ```
@@ -574,7 +570,7 @@ options:    dict that overrides any fields of data
 ##### __ setattr__(name, value)
 Overrides SmartDict.__ setattr__ Passes name=keypair to _setkeypair()
 
-##### _setkeypair(value, verbose)
+##### _setkeypair(value)
 Turn the value into a keypair and store on keypair field, 
 sets master if key has a private key (but note this is overridden in the constructor).
 ```
@@ -600,13 +596,13 @@ dd:         dict of attributes of this, possibly changed by superclass
 returns:    dict of attributes ready for storage.
 ```
 
-##### async _p_storepublic(verbose)
+##### async _p_storepublic()
 Store a public version, doesn’t encrypt on storing as want public part to be publicly visible (esp for Domain)
 
 ##### storedpublic()
 Returns:        True if the object’s public version (i.e. public keys etc) has been stored
 
-##### async p_store(verbose)
+##### async p_store()
 Override SmartDIct to store on Dweb, if _master is true, will ensure that stores a public version as well, and saves in _publicurl.
 Will store master unless dontstoremaster is set.
 
@@ -615,7 +611,7 @@ Will store master unless dontstoremaster is set.
 Returns:        True if object’s private and public versions both stored, or should not be stored. 
 ```
 
-##### async p_sign(urls, verbose)
+##### async p_sign(urls)
 Utility function to create a signature, normally use p_push which signs and puts on _list and on Dweb
 ```
 urls:        array of ursl of object to sign
@@ -623,7 +619,7 @@ returns:     Signature
 throws:      assertion error if doesn't
 ```
 
-##### verify(sig, verbose)
+##### verify(sig)
 Check that a signature is validly signed by this list.
 ```
 sig:         Signature
@@ -667,11 +663,11 @@ Inherits from PublicPrivate: keypair, _master, _publicurls, _allowunsafestore, d
 inherits from SmartDict: _acl, _urls
 ```
 
-##### static async p_new CommonList (data, verbose, options)
+##### static async p_new CommonList (data, options)
 Create a new instance of CommonList (but see p_new) - see PublicPrivate.new for documentation
 Note that in almost all cases should use p_new rather than constructor as constructor cant setup listurls and listpublicurls
 
-##### static async p_new(data, master, key, verbose, options)
+##### static async p_new(data, master, key, options)
 Create a new CommonList, and sets listurls and listpublicurls based on calls to Transports.
 This should be used in preference to “new CommonList()”
 
@@ -685,17 +681,17 @@ dd      dictionary of fields
 returns dictionary of fields
 ```
  
-##### async p_fetchlist(verbose)
+##### async p_fetchlist()
 Load the list from the Dweb,
 Use p_list_then_elements instead if wish to load the individual items in the list
 
-##### async p_list_then_elements(verbose)
+##### async p_list_then_elements()
 Utility function to simplify nested functions, fetches body, list and each element in the list.
 ```
 resolves        list of objects suitable for storing on a field (e.g. keys)
 ```
 
-##### async p_push(obj, verbose)
+##### async p_push(obj)
 Sign and store a object on a list, stores both locally on _list and sends to Dweb
 ```
 obj:        Should be subclass of SmartDict, (Block is not supported)
@@ -703,14 +699,14 @@ resolves:   Signature created in process - for adding to lists etc.
 throws:     ForbiddenError if not master;
 ```
 
-##### async p_add(sig, verbose)
+##### async p_add(sig)
 Add a signature to the Dweb for this list
 ```
 sig:      Signature to add
 resolves: undefined
 ```
 
-##### listmonitor ({verbose, current}) 
+##### listmonitor ({current}) 
 Setup a callback on all valid transports, so if anything is added to this list on the Dweb it will be called. This method then deduplicates, and if the event is new will call any callback added with addEventListener() with an event of type “insert”   Note that the callback is called WITHOUT fetching the data referenced in the Sig, since it could be large, or a stream etc.
 ```
 current     if true, return existing as well as new entries
@@ -733,13 +729,13 @@ Two ordering use cases
 * Create new object via p_new, store it via the _autoset setting
 * Retrieve object via SmartDict - want to start monitor after get, and start set
 
-##### new KeyValueTable (data, verbose, options)
+##### new KeyValueTable (data, options)
 Create a new instance of KeyValueTable (but see p_new) - see PublicPrivate.p_new for documentation
 ```
 data: {_autoset}  if _autoset is undefined then will be set if master && tableplublicurls is set
 ```
 
-##### static async p_new (data, master, key, verbose, options)
+##### static async p_new (data, master, key, options)
 Create a new KeyValueTable, (calls constructor), calls Transports for tableurls and tablepublicurls
 ```
 keyvaluetable    Which table at the DB to store this in. (DB is auto-selected based on keys)
@@ -756,13 +752,13 @@ publicOnly  If true massage the data to store a safe value
 encryptIfAcl    If true, and there is an acl field, then use the encryption process before storing
 ```
 
-##### _mapFromStorage(storageVal, verbose=false) {
+##### _mapFromStorage(storageVal) {
 Convert a value as stored in the storage dictionary into a value suitable for the map. Pair of _storageFromMap.
 
 ##### preflight(dd)
 Overrides PublicPrivate.preflight to delete tableurls from non-master
 
-##### async p_set (name, value, {verbose=false, publicOnly=false, encryptIfAcl=true, fromNet=false}={})
+##### async p_set (name, value, {publicOnly=false, encryptIfAcl=true, fromNet=false}={})
 Set a value to a named key in the table setup during creating of this KeyValueTable
 (Subclased in Domain to avoid overwriting private version with public version from net)
 ```
@@ -779,14 +775,14 @@ Internal function to udate the map from a dict
 res dictionary of field names and values
 ```
 
-##### async p_get (keys, verbose)
+##### async p_get (keys)
 Get the value stored at a key from the transport, store locally in _map as well. 
 ```
 keys:        single key or array of keys
 returns        single result or dictionary, will convert from storage format
 ```
 
-##### async p_getMerge(keys, verbose) {
+##### async p_getMerge(keys) {
 Get the value of a key, but if there are multiple tablepublicurls then check them all, and use the most recent value
 TODO - will store most recent back to stores that don't have it.
 ```
@@ -794,23 +790,23 @@ key:    Key or Array of keys.
 return: value or array of values
 ```
 
-##### async p_keys(verbose)
+##### async p_keys()
 ```
 returns array of all keys
 ```
 
-##### async p_getall (verbose)
+##### async p_getall ()
 ```
 returns        dictionary of all keys and values
 ```
 
-##### async p_delete key, {fromNet=false, verbose=false}={})
+##### async p_delete key, {fromNet=false}={})
 Delete the key from the map and on the net
 ```
 fromNet        Only delete locally - this request came from the net
 ```
 
-##### monitor({verbose, current})
+##### monitor({current})
 TODO - note this doesnt yet support the current flag from Transports.monitor
 Add a monitor for each transport - note this means if multiple transports support it, then will get duplicate events back if everyone else is notifying all of them.
 Note monitor() is synchronous, so it cannot do asynchronous things like connecting to the underlying transport
@@ -852,13 +848,13 @@ _list: Contains a list of signatures, each for a SmartDict each of which is:
    name:   Name of this token
 Inherits from PublicPrivate: _master, _publicurls, _allowunsafestore, dontstoremaster, _listerners; and from CommonList: _list, and from SmartDict: _acl. _urls
 ```
-##### new AccessControlList(data, verbose, options)
+##### new AccessControlList(data, options)
 Create a new AccessControlList - see PublicPrivate for parameters, but should use p_new
 
-##### static async p_new (data, master, key, verbose, options, kc) 
+##### static async p_new (data, master, key, options, kc) 
 Create a new AccessControlList, store, add to keychain, adds listurls and listpublicurls
 ```
-data,master,key,verbose,options: see new PublicPrivate
+data,master,key,options: see new PublicPrivate
 Kc:        Optional KeyChain to add to
 ```
 ##### preflight (dd)
@@ -867,19 +863,19 @@ Overrides CommonList, Prepare data for storage, ensure publickey available
 dd:        dict containing data preparing for storage (from subclass)
 returns        dict ready for storage if not modified by subclass
 ```
-##### async p_add_acle (viewerpublicurls, data, verbose) 
+##### async p_add_acle (viewerpublicurls, data) 
 Add a new ACL entry - that gives a viewer the ability to see the accesskey of this ACL
 ```
 viewerpublicurls:        Array of urls of the viewers KeyPair object (contains a publickey)
 data:        Dict of data fields, only currently supports “name” but could theoretically add any.
 resolves to:         this for chaining
 ```
-##### p_tokens(verbose)
+##### p_tokens()
 Return the list of tokens on this ACL. Side effect of loading data on each Signature in this._list
 ```
 resolves to: [ SmartDict{token:, viewer:, name: }, ... ]
 ```
-##### _findtokens (viewerkeypair, decrypt, verbose)
+##### _findtokens (viewerkeypair, decrypt)
 Find the entries, if any, in the ACL for a specific viewer
 There might be more than one if either the accesskey changed or the person was added multiple times.
 Entries are SmartDict with token being the decryptable accesskey we want
@@ -898,7 +894,7 @@ b64:         true if want result as urlbase64 string, otherwise string
 :return:         string, possibly encoded in urlsafebase64
 ```
 
-##### decrypt (data,, verbose)
+##### decrypt (data)
 Decrypt data 
 ```
 data:         string from json of encrypted data - b64 encrypted
@@ -906,7 +902,7 @@ data:         string from json of encrypted data - b64 encrypted
 :throw:        AuthenticationError if there are no tokens for our ViewerKeyPair that can decrypt the data
 ```
 
-##### static async p_decryptdata(value, verbose) 
+##### static async p_decryptdata(value) 
 Takes a dict, checks if encrypted (by presence of "encrypted" field, and returns immediately if not
 Otherwise if can find the ACL's url in our keychains then decrypt with it (it will be a KeyChain, not a ACL in that case.
 Else returns a promise that resolves to the data
@@ -929,12 +925,12 @@ eventHandler - monitor events on KeyChains (TODO document which)
 keychains - list of logged in KeyChains
 ```
 
-##### new KeyChain (data, verbose, options)
+##### new KeyChain (data, options)
 Create a new KeyChain, for parameters see CommonList or Publicprivate.
 
 It calls any EventHandlers with cb("login", keychain)
 
-##### static async p_new (data, key, verbose) 
+##### static async p_new (data, key) 
 Create a new KeyChain object based on a new or existing key.
 Store and add to the Dweb.keychains, list any elements already on the KeyChain (relevant for existing keys)
 ```
@@ -942,7 +938,7 @@ data, key:  See CommonList or PublicPrivate for parameters
 resolves to:    KeyChain created
 ```
 
-##### async p_list_then_elements({verbose=false, ignoreerrors=false}={})
+##### async p_list_then_elements({ignoreerrors=false}={})
 Subclasses CommonList to store elements in a _keys array.
 ```
 ignoreerrors    If set will continue and ignore (just log) any elements it cant retriev
@@ -957,7 +953,7 @@ b64: True if result wanted in urlsafebase64 (usually)
 :return:    Data encrypted by Public Key of this KeyChain.
 ```
 
-##### decrypt(data, verbose)
+##### decrypt(data)
 Decrypt data with this KeyChain - pair of .encrypt()
 ```
 data: String from json, b64 encoded
@@ -965,7 +961,7 @@ return: decrypted text as string
 throws: :throws: EnryptionError if no encrypt.privateKey, CodingError if !data
 ```
 
-##### p_store (verbose)
+##### p_store ()
 Unlike other p_store this ONLY stores the public version, and sets the _publicurl, on the assumption that the private key of a KeyChain should never be stored.
 Private/master version should never be stored since the KeyChain is itself the encryption root.
 
@@ -985,14 +981,14 @@ Find the default KeyChain for locking (currently the most recent login)
 Returns:        keychain or undefined
 ```
 
-##### static keychains_find (dict, verbose) 
+##### static keychains_find (dict) 
 Locate a needed KeyChain on Dweb.keychains by some filter.
 ```
 dict:            dictionary to check against the keychain (see CommonList.match() for interpretation
 :return:                AccessControlList or KeyChain or null
 ```
 
-##### static find_in_keychains(dict, verbose)
+##### static find_in_keychains(dict)
 Locate a needed KeyChain on this.keychains by some filter.
 ```
 dict:    dictionary to check against the keychain (see CommonList.match() for interpretation
@@ -1021,20 +1017,20 @@ _acl:       Set to prevent access to the VersionList itself
 _list:      List of versions, last on list should be the current version
 ```
 
-##### new VersionList (data, verbose, options)
+##### new VersionList (data, options)
 ```
 data:        Data to initialize to - usually {name, contentacl, _acl}
 master:      True if should be master (false when loaded from Dweb)       
 ```
 
-##### static async p_expanddata(data, verbose)
+##### static async p_expanddata(data)
 Prior to initializing data, expand any URLs in known fields (esp contentacl)
 ```
 data:           data to initialize to
 resolves to:    expanded data
 ```
 
-##### static async p_new (data, master, key, firstinstance, verbose)
+##### static async p_new (data, master, key, firstinstance)
 Create a new instance of VersionList, store it, initialize _working and add to KeyChain:
 _acl will be default KeyChain if not specified
 ```
@@ -1044,7 +1040,7 @@ firstinstance   instance used for initialization, will be copied for each versio
 resolves to:    new instance of VersionList (note since static, it cannot make subclasses)
 ```
 
-##### async p_saveversion(verbose)
+##### async p_saveversion()
 Update the content edited i.e. sign a copy and store on the list, 
 then make a new copy to work with.
 Triggered by Save in most examples.
@@ -1052,13 +1048,13 @@ Triggered by Save in most examples.
 resolves to:        Signature of saved version
 ```
 
-##### async p_restoreversion(sig, verbose)
+##### async p_restoreversion(sig)
 Go back to version from a specific sig (sets _working)
 ```
 sig:        Signature to go back to
 ```
 
-##### async p_fetchlistandworking(verbose)
+##### async p_fetchlistandworking()
 Fetch the list of versions, and get the data for the most recent one (explicitly does not fetch data of earlier versions)
 
 ##### preflight(dd)
@@ -1143,10 +1139,10 @@ metadata:   Other information about the object needed before or during retrieval
 Fields inherited from SignatureMixin: signatures
 Fields inherited from NameMixin: expires; name;
 ```
-##### new Leaf(data, verbose, options)
+##### new Leaf(data, options)
 Constructs new Leaf, calls signature and name mixin constructors
 
-##### static async p_new(data, verbose, options)
+##### static async p_new(data, options)
 Create a new Leaf
 returns Leaf
 
@@ -1155,12 +1151,12 @@ Support debugging
 ```
 returns Multiline output that can be displayed for debugging
 ```
-##### async p_resolve(path, {verbose=false}={})
+##### async p_resolve(path)
 Sees it it can resolve the path in the Leaf further, because we know the type of object (e.g. can return subfield of some JSON)
 ```
 path    / separated string to resolve in object
 ```
-##### async p_boot({remainder=undefined, search_supplied=undefined, opentarget="_self", verbose=false}={})
+##### async p_boot({remainder=undefined, search_supplied=undefined, opentarget="_self"}={})
 Utility to display a Leaf, will probably need expanding to more kinds of media and situations via options
 Strategy depends on whether we expect relativeurls inside the HTML. 
 If do, then need to do a window.open so that URL is correct, otherwise fetch and display as a blob
@@ -1186,10 +1182,10 @@ Fields inherited from KeyValueTable
     _map:   KeyValueTable   Mapping of name strings beneath this Domain
 ```
 
-##### new Domain(data, verbose, options)
+##### new Domain(data, options)
 Constructs new Domain, calls signature and name mixin constructors
 
-##### static async p_new(data, master, key, verbose, seedurls, kids)
+##### static async p_new(data, master, key, seedurls, kids)
 Construct and return new Domain
 ```
 data, master, key   See KeyValueTable.p_new
@@ -1210,7 +1206,7 @@ That is the case if the subdomain has a cryptographically valid signatures by on
 returns:    boolean
 ```
 
-##### async p_register(name, registrable, verbose) {
+##### async p_register(name, registrable) {
 Register an object.
 Code path is domain.p_register -> domain.p_set
 ```
@@ -1218,11 +1214,11 @@ name:   What to register it under, relative to "this"
 registrable:    Either a Domain or Leaf, or else something with _publicurls or _urls (i.e. after calling p_store) and it will be wrapped with a Leaf
 ```
 
-##### static async p_rootSet( {verbose=false}={})
+##### static async p_rootSet( )
 Setup a standard set of urls for the root domain
 
 
-##### static async p_rootResolve(path, {verbose=false}={}) {
+##### static async p_rootResolve(path) {
 Resolve a path relative to the root
 ```
 path    see p_resolve
@@ -1230,7 +1226,7 @@ resolves to:    [ Leaf, remainder ]
 raises:         CodingError
 ```
 
-##### async p_resolve(path, {verbose=false}={})
+##### async p_resolve(path)
 Resolves a path retlative to this Domain, should resolve to the Leaf
 ```
 path            / separated path, e.g. arc/archive.org/details
@@ -1242,10 +1238,10 @@ Support printable debugging
 ```
 returns multi line string suitable for console.log
 ```
-##### static async p_setupOnce({verbose=false} = {})
+##### static async p_setupOnce()
 Intended to be run once to setup global names
 
-##### static async p_resolveNames(name, {verbose=false}={})
+##### static async p_resolveNames(name)
 Turn an array of urls into another array, resolving any names if possible and leaving other URLs untouched
 Try and resolve a name,
 ```
@@ -1258,7 +1254,7 @@ Look in the logged in user's keychains to see if have the private version of thi
 ```
 returns:    undefined or Domain
 ```
-##### static async p_resolveAndBoot(name, {verbose=false, opentarget="_self", search_supplied=undefined}={})
+##### static async p_resolveAndBoot(name, {opentarget="_self", search_supplied=undefined}={})
 Utility function for bootloader.html
 Try and resolve a name, if get a Leaf then boot it, if get another domain then try and resolve the "." and boot that.
 ```

@@ -1,4 +1,5 @@
 //TODO-REPO move this to dweb-transports
+localStorage.debug = "dweb-transports dweb-transports:* dweb-objects dweb-objects:*";
 const IPFS = require('ipfs');
 
 var ipfs;
@@ -54,7 +55,7 @@ function multihashFrom(url) {
     throw new errors.CodingError(`Cant turn ${url} into a multihash`);
 }
 
-function p_ipfsstart(verbose) {
+function p_ipfsstart() {
     return new Promise((resolve, reject) => {
         if (!usehttpapi) {
             ipfs = new IPFS(defaultipfsoptions);
@@ -136,7 +137,7 @@ async function test_long_file(note, multihash, len) {
     //await test_bylinks(cid, len, false);
 }
 async function test_ipfs() {
-	await p_ipfsstart(true);
+    await p_ipfsstart(true);
 	await test_long_file('PDF sent to http api a long time ago', "Qmbzs7jhkBZuVixhnM3J3QhMrL6bcAoSYiRPZrdoX3DhzB", 262438);
 	//await test_long_file('Commute 11Mb video sent a few months ago almost certainly via urlstore', 'zdj7Wc9BBA2kar84oo8S6VotYc9PySAnmc8ji6kzKAFjqMxHS', 11919082);
 	//await test_long_file('500Mb file sent few days ago via urlstore', 'zdj7WfaG5e1PWoqxWUyUyS2nTe4pgNQZ4tRnrfd5uoxrXAANA', 521998952);

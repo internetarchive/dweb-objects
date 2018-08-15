@@ -1,4 +1,5 @@
 //TODO-REPO move this to dweb-transports
+localStorage.debug = "dweb-transports dweb-transports:* dweb-objects dweb-objects:*";
 const IPFS = require('ipfs');
 
 var ipfs;
@@ -88,7 +89,7 @@ function multihashFrom(url) {
     throw new errors.CodingError(`Cant turn ${url} into a multihash`);
 }
 
-function p_ipfsstart(verbose) {
+function p_ipfsstart() {
     return new Promise((resolve, reject) => {
         ipfs = new IPFS(defaultipfsoptions);
         ipfs.on('ready', () => {

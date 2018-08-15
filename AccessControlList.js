@@ -4,6 +4,7 @@ const SmartDict = require("./SmartDict");   // _AccessControlListEntry extends t
 const KeyPair = require('./KeyPair'); // Encapsulate public/private key pairs and crypto libraries
 const KeyChain = require('./KeyChain'); // Hold a set of keys, and locked objects
 const utils = require('./utils'); // Utility functions
+const debugacl = require('debug')('dweb-objects:acl');
 
 class AccessControlList extends CommonList {
     /*
@@ -23,32 +24,32 @@ class AccessControlList extends CommonList {
 
     */
 
-    constructor(data, verbose, options) {
+    constructor(data, options) {
         /*
         Create a new AccessControlList - see CommonList for parameters
          */
-        super(data, verbose, options);
+        super(data, options);
         if (this._master && !this.accesskey) {
             this.accesskey = KeyPair.b64enc(KeyPair.randomkey());
         }
         this.table = "acl";
     }
 
-    static async p_new(data, master, key, verbose, options, kc) {
+    static async p_new(data, master, key, options, kc) {
         /*
             Create a new AccessControlList, store, add to keychain
 
-            :param data,master,key,verbose,options: see new CommonList
+            :param data,master,key,options: see new CommonList
             :param kc: Optional KeyChain to add to
          */
-        if (verbose) console.log("AccessControlList.p_new");
-        let acl = await super.p_new(data, master, key, verbose); // Calls CommonList.p_new -> new ACL() -> new CL() and then CL.p_new sets listurls and listpublicurls
+        debugacl("Creating new")
+        let acl = await super.p_new(data, master, key); // Calls CommonList.p_new -> new ACL() -> new CL() and then CL.p_new sets listurls and listpublicurls
         if (master) {
             kc = kc || KeyChain.default();    // Use default KeyChain (most recent)
             if (kc) {
-                await kc.p_push(acl, verbose); // sig
+                await kc.p_push(acl); // sig
             } else {
-                await acl.p_store(verbose); // Ensure stored even if not put on KeyChain
+                await acl.p_store(); // Ensure stored even if not put on KeyChain
             }
         }
         return acl;
@@ -68,7 +69,7 @@ class AccessControlList extends CommonList {
         return super.preflight(dd);
     }
 
-    async p_add_acle(viewerpublicurls, data, verbose) {
+    async p_add_acle(viewerpublicurls, data) {
         /*
         Add a new ACL entry - that gives a viewer the ability to see the accesskey of this URL
 
@@ -78,19 +79,19 @@ class AccessControlList extends CommonList {
         :throws ForbiddenError if not master
         */
         try {
-            if (verbose) console.log("ACL.p_add_acle viewerpublicurls=", viewerpublicurls);
+            debugacl("Adding %o to %s", viewerpublicurls, this._name());
             if (viewerpublicurls instanceof KeyPair) viewerpublicurls = viewerpublicurls._publicurls;
             if (!this._master) throw new errors.ForbiddenError("ACL.p_add_acle: Cannot add viewers to a public copy of an ACL");
             if (!(viewerpublicurls && viewerpublicurls.length)) throw new errors.CodingError("ACL.p_add_acle: Cant add empty viewerpublicurls");
-            let viewerpublickeypair = await SmartDict.p_fetch(viewerpublicurls, verbose); // Fetch the public key will be KeyPair
+            let viewerpublickeypair = await SmartDict.p_fetch(viewerpublicurls); // Fetch the public key will be KeyPair
             // Create a new ACLE with access key, encrypted by publickey
             let acle = new SmartDict({
                 //Need to go B64->binary->encrypt->B64
                 "token": viewerpublickeypair.encrypt(KeyPair.b64dec(this.accesskey), true, this),
                 "viewer": viewerpublicurls,
                 "name": data["name"]
-            }, verbose); //data,verbose
-            await this.p_push(acle, verbose);   // Throws ForbiddenError if not master
+            }); //data
+            await this.p_push(acle);   // Throws ForbiddenError if not master
             return acle;
         } catch (err) { // ForbiddenError from p_push if not master; not sure what else.
             console.log("Error caught in ACL.p_add_acle",err.message);
@@ -98,14 +99,14 @@ class AccessControlList extends CommonList {
         }
     }
 
-    async p_tokens(verbose) { //TODO-BACKPORT
+    async p_tokens() { //TODO-BACKPORT
         /*
         Return the list of tokens on this ACL. Side effect of loading data on each Signature in this._list
         resolves to: [ SmartDict{token:, viewer:, name: }, ... ]
          */
-        return this.p_list_then_elements({verbose});      // Trivial
+        return this.p_list_then_elements();      // Trivial
     }
-    _findtokens(viewerkeypair, decrypt, verbose) {
+    _findtokens(viewerkeypair, decrypt) {
         /*
         Find the entries, if any, in the ACL for a specific viewer
         There might be more than one if either the accesskey changed or the person was added multiple times.
@@ -118,7 +119,7 @@ class AccessControlList extends CommonList {
         :throws:    CodingError if not yet fetched
         */
 
-        if (verbose) console.log(`ACL._findtokens (decrypt=${decrypt} looking for tokens in ${this._publicurls}, matching viewerkeypair=`,viewerkeypair);
+        debugacl(`ACL._findtokens (decrypt=${decrypt} looking for tokens in ${this._publicurls}, matching viewerkeypair=`,viewerkeypair);
         const viewerurls = viewerkeypair._publicurls; // Note this was erroneously _url, has to be _publicurls as cant store the private url on a ACL as person setting up ACL doesn't know it
         if (! this._list.length) { return []}
         let toks = this._list
@@ -127,7 +128,7 @@ class AccessControlList extends CommonList {
         if (decrypt) {  // If requested, decrypt each of them
             toks = toks.map((tok) => viewerkeypair.decrypt(tok, this, "uint8array"));
         }
-        if (verbose) console.log(`ACL._findtokens found ${toks.length}`);
+        debugacl(`ACL._findtokens found ${toks.length}`);
         return toks;
     }
 
@@ -146,7 +147,7 @@ class AccessControlList extends CommonList {
         }
         return KeyPair.sym_encrypt(data, this.accesskey, b64); };  //CodingError if accesskey not set
 
-    decrypt(data, verbose) {
+    decrypt(data) {
         /*
             Decrypt data for a viewer.
             Chain is SD.p_fetch > SD.p_decryptdata > ACL|KC.decrypt, then SD.setdata
@@ -158,7 +159,7 @@ class AccessControlList extends CommonList {
         let vks = KeyChain.mykeys(KeyPair);
         if (!Array.isArray(vks)) { vks = [ vks ]; } // Convert singular key into an array
         for (let vk of vks) {
-            let accesskeys = this._findtokens(vk, true, verbose); // Find any tokens in ACL for this KeyPair and decrypt to get accesskey (maybe empty)
+            let accesskeys = this._findtokens(vk, true); // Find any tokens in ACL for this KeyPair and decrypt to get accesskey (maybe empty)
             for (let accesskey of accesskeys) { // Try each of these keys
                 try {   // If can descrypt then return the data
                     return KeyPair.sym_decrypt(data, accesskey, "text"); //data. symkey #Exception DecryptionFail
@@ -171,7 +172,7 @@ class AccessControlList extends CommonList {
         throw new errors.AuthenticationError("ACL.decrypt: No valid keys found");
     };
 
-    static async p_decryptdata(value, verbose) {
+    static async p_decryptdata(value) {
         /*
          Takes a dict,
          checks if encrypted (by presence of "encrypted" field, and returns immediately if not
@@ -189,28 +190,28 @@ class AccessControlList extends CommonList {
             if (!value.encrypted) {
                 return value;
             } else {
-                if (verbose) console.log("ACL.p_decryptdata of:",value);
+                debugacl("ACL.p_decryptdata of: %o",value);
                 let aclurls = value.acl;
                 let decryptor = KeyChain.keychains_find({_publicurls: aclurls});  // Matching KeyChain or None
                 if (!decryptor) {
                     // TODO-AUTHENTICATION probably add person - to - person version encrypted with receivers Pub Key
-                    if (verbose) console.log("ACL.p_decryptdata: Looking for our own ACL:",aclurls);
+                    debugacl("ACL.p_decryptdata: Looking for our own ACL: %o",aclurls);
                     decryptor = KeyChain.mykeys(AccessControlList).find((acl) => acl.match({_publicurls: aclurls}));  // Returns undefined if none match or keychains is empty, else first match
-                    if (verbose) console.log("ACL.p_decryptdata: fetching ACL:",aclurls);
+                    debugacl("ACL.p_decryptdata: fetching ACL: %o",aclurls);
                     if (!decryptor) {
-                        decryptor = await SmartDict.p_fetch(aclurls, verbose); // Will be AccessControlList
-                        if (verbose) console.log("ACL.p_decryptdata: fetched ACL:", decryptor);
+                        decryptor = await SmartDict.p_fetch(aclurls); // Will be AccessControlList
+                        debugacl("ACL.p_decryptdata: fetched ACL: %o", decryptor);
                         if (decryptor instanceof KeyChain) {
-                            if (verbose) console.log(`ACL.p_decryptdata: encrypted with KC name=${decryptor.name}, but not logged in`);
+                            debugacl(`ACL.p_decryptdata: encrypted with KC name=${decryptor.name}, but not logged in`);
                             // noinspection ExceptionCaughtLocallyJS
                             throw new errors.AuthenticationError(`Must be logged in as ${decryptor.name}`);
                         }
                     }
-                    if (verbose) console.log("ACL.p_decryptdata: fetching ACL tokens");
-                    await decryptor.p_tokens(verbose); // Will load blocks in sig as well
-                    if (verbose) console.log("ACL.p_decryptdata: fetched ACL tokens for",decryptor._publicurls, decryptor._list.map((sig) => sig.data) );
+                    debugacl("ACL.p_decryptdata: fetching ACL tokens");
+                    await decryptor.p_tokens(); // Will load blocks in sig as well
+                    debugacl("ACL.p_decryptdata: fetched ACL tokens for %o %o",decryptor._publicurls, decryptor._list.map((sig) => sig.data) );
                 }
-                let decrypted = JSON.parse(decryptor.decrypt(value.encrypted, verbose));  // Resolves to data or throws AuthentictionError
+                let decrypted = JSON.parse(decryptor.decrypt(value.encrypted));  // Resolves to data or throws AuthentictionError
                 if (!decrypted._acl) decrypted._acl = decryptor;    // Save the _acl used for encryption in case write it back TODO not sure we can encrypt it back
                 return decrypted;
             }
@@ -224,21 +225,21 @@ class AccessControlList extends CommonList {
         return fieldtypes[propname] || super.objbrowser_fields(propname);
     }
 
-    static async p_test(verbose) { //TODO-BACKPORT - copy into Python/test_client
+    static async p_test() { //TODO-BACKPORT - copy into Python/test_client
         // Test ACL - note creates and returns a ACL suitable for other tests
-        if (verbose) console.log("AccessControlList.p_test");
+        debugacl("AccessControlList.p_test");
         try {
-            if (verbose) console.log("Creating AccessControlList");
+            debugacl("Creating AccessControlList");
             // Create a acl for testing, - full breakout is in test_keychain
             let accesskey = KeyPair.randomkey();
             let aclseed = "01234567890123456789012345678902";    // Note seed with 01 at end used in mnemonic faking
-            let keypair = new KeyPair({key: "NACL SEED:" + KeyPair.b64enc(new Buffer(aclseed))}, verbose);
-            //ACL(data, master, keypair, keygen, mnemonic, verbose, options)
+            let keypair = new KeyPair({key: "NACL SEED:" + KeyPair.b64enc(new Buffer(aclseed))});
+            //ACL(data, master, keypair, keygen, mnemonic, options)
             let acl = await this.p_new({
                 accesskey: KeyPair.b64enc(accesskey),
                 _allowunsafestore: true  // Not setting _acl on this
-            }, true, keypair, verbose, {});
-            if (verbose) console.log("Creating AccessControlList url=", acl._urls);
+            }, true, keypair, {});
+            debugacl("Creating AccessControlList url= %o", acl._urls);
             return {acl: acl};
         } catch(err) {
             console.log("Error in AccessControlList.p_test", err);   // Log since maybe "unhandled" if just throw
@@ -247,7 +248,7 @@ class AccessControlList extends CommonList {
     }
 
 }
-SmartDict.decryptwith((data, verbose) => AccessControlList.p_decryptdata(data, verbose));   // Enable decryption immediately at Transportation
+SmartDict.decryptwith((data) => AccessControlList.p_decryptdata(data));   // Enable decryption immediately at Transportation
 SmartDict.table2class["acl"] = AccessControlList;
 
 exports = module.exports = AccessControlList;

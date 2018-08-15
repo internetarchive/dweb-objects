@@ -1,4 +1,5 @@
 const errors = require('./Errors'); // Standard Dweb Errors
+const debugdomain = require('debug')('dweb-objects:domain');
 // Depends on var DwebTransports being set externally - its done this way so that both direct and ServiceWorker/Proxy can be used
 const SmartDict = require("./SmartDict"); //for extends
 const KeyPair = require('./KeyPair'); // Encapsulate public/private key pairs and crypto libraries
@@ -49,7 +50,7 @@ const SignatureMixin = function(fieldlist) {
         try {
             return new KeyPair({key: sig.signedby}).verify(this._signable(sig.date), sig.signature);    // Throws SigningError
         } catch(err) {
-            console.warn("Invalid signature", err);
+            console.warn("Invalid signature", err.message);
             return false;
 
         }
@@ -98,19 +99,19 @@ class Leaf extends SmartDict {
         Fields inherited from NameMixin: expires; name;
 
      */
-    constructor(data, verbose, options) {
-        super(data, verbose, options);
+    constructor(data, options) {
+        super(data, options);
         this.nameConstructor();   //
         this.signatureConstructor(); // Initialize Signatures
         this.table = 'leaf';
         this.mimetype = this.mimetype || undefined;  // Mime type of object retrieved
         this.metadata = this.metadata || {};         // Other information about the object needed before or during retrieval
     }
-    static async p_new(data, verbose, options) {
+    static async p_new(data, options) {
         if (data instanceof SmartDict) {
             data = {urls: data._publicurls || data._urls };  // Public if appropriate else _urls
         }
-        return new this(data, verbose, options)
+        return new this(data, options)
     }
 
     objbrowser_fields(propname) {
@@ -123,17 +124,17 @@ class Leaf extends SmartDict {
         // Output something that can be displayed for debugging
         return `${indent.repeat(indentlevel)}${this.name} = ${this.urls.join(', ')}${this.expires ? " expires:"+this.expires : ""}\n`
     }
-    async p_resolve(path, {verbose=false}={}) {
+    async p_resolve(path) {
         /*
         Sees it it can resolve the path in the Leaf further, because we know the type of object (e.g. can return subfield of some JSON)
          */
         try {
             if (["application/json"].includes(this.mimetype) ) {
-                let data = await DwebTransports.p_rawfetch(this.urls, { verbose, timeoutMS: 5000});
+                let data = await DwebTransports.p_rawfetch(this.urls, {timeoutMS: 5000});
                 let datajson = (typeof data === "string" || data instanceof Buffer) ? JSON.parse(data) : data;          // Parse JSON (dont parse if p_fetch has returned object (e.g. from KeyValueTable
                 if (this.metadata["jsontype"] === "archive.org.dweb") {
-                    let obj = await SmartDict._after_fetch(datajson, urls, verbose);   // Interpret as dweb - look at its "table" and possibly decrypt
-                    return obj.p_resolve(path, {verbose: false});   // This wont work unless the object implements p_resolve (most dont)
+                    let obj = await SmartDict._after_fetch(datajson, urls);   // Interpret as dweb - look at its "table" and possibly decrypt
+                    return obj.p_resolve(path);   // This wont work unless the object implements p_resolve (most dont)
                 } else {
                     console.error("Leaf.p_resolve unknown type of JSON", this.mimetype);
                     // noinspection ExceptionCaughtLocallyJS
@@ -155,7 +156,7 @@ class Leaf extends SmartDict {
             throw new errors.ResolutionError(err.message);
         }
     }
-    async p_boot({remainder=undefined, search_supplied=undefined, opentarget="_self", openChromeTab = undefined, verbose=false}={}) { //TODO-API
+    async p_boot({remainder=undefined, search_supplied=undefined, opentarget="_self", openChromeTab = undefined}={}) { //TODO-API
         /*
             Utility to display a Leaf, will probably need expanding to more kinds of media and situations via options
             Strategy depends on whether we expect relativeurls inside the HTML. If do, then need to do a window.open so that URL is correct, otherwise fetch and display as a blob
@@ -175,10 +176,9 @@ class Leaf extends SmartDict {
                     try {
                         if (remainder) url.search = url.search + (url.search ? '&' : "") + `${pathatt}=${remainder}`;
                         if (search_supplied) url.search = url.search + (url.search ? '&' : "") + search_supplied;
-                        if (verbose) url.search = url.search + (url.search ? '&' : "") + 'verbose=true';
-                        if (verbose) console.log("Bootstrap loading url:", url.href);
+                        debugdomain("Bootstrap loading url: %s", url.href);
                         if(openChromeTab){
-                            console.log("URL to load is "+url.href);
+                            debugdomain("URL to load is %s"+url.href);
                             // noinspection JSUnresolvedVariable
                             chrome.tabs.update(openChromeTab, {url:url.href}, function(){});
                         }else{
@@ -186,13 +186,13 @@ class Leaf extends SmartDict {
                         }
                         return true; // Only try and open one - bypasses error throwing
                     } catch(err) {
-                        console.log("Failed to open", url, err.message);
+                        console.warn("Domain Failed to open", url, err.message);
                         errs.push(err);
                         return false;
                     }
                 });
                 if (urlloaded) {
-                    console.log("Succeeded to open", urlloaded.href);
+                    debugdomain("Succeeded to open", urlloaded.href);
                 } else if (errs.length) {
                     throw err[0];   // First error encountered
                 } else {
@@ -202,7 +202,7 @@ class Leaf extends SmartDict {
                 // Its not clear if parms make sense to a blob, if they are needed then can copy from above code
                 // Not setting timeoutMS as could be a slow load of a big file TODO-TIMEOUT make dependent on size
                 //TODO figure out how to open as a stream and send to a window
-                utils.display_blob(await DwebTransports.p_rawfetch(this.urls, {verbose,  timeoutMS: 5000}), {type: this.mimetype, target: opentarget});
+                utils.display_blob(await DwebTransports.p_rawfetch(this.urls, {  timeoutMS: 5000}), {type: this.mimetype, target: opentarget});
             }
         } else {
             throw new Error("Bootloader fail, dont know how to display mimetype" + this.mimetype);
@@ -234,8 +234,8 @@ class Domain extends KeyValueTable {
     tablepublicurls: [ str* ]       Where to find the table.
     _map:   KeyValueTable   Mapping of name strings beneath this Domain
     */
-    constructor(data, verbose, options) {
-        super(data, verbose, options); // Initializes _map if not already set
+    constructor(data, options) {
+        super(data, options); // Initializes _map if not already set
         this.table = "domain"; // Superclasses may override
         this.nameConstructor();  // from the Mixin, initializes signatures
         this.signatureConstructor();
@@ -243,14 +243,14 @@ class Domain extends KeyValueTable {
             this.keys = [ this.keypair.signingexport()]
         }
     }
-    static async p_new(data, master, key, verbose, seedurls, kids) {
+    static async p_new(data, master, key, seedurls, kids) {
         /*
         seedurls:   Urls that can be used in addition to any auto-generatd ones
         kids:       dict Initial subdomains or leafs { subdomain: Leaf or Domain }
          */
-        const obj = await super.p_new(data, master, key, verbose, {keyvaluetable: "domain", seedurls: seedurls}); // Will default to call constructor and p_store if master
+        const obj = await super.p_new(data, master, key, {keyvaluetable: "domain", seedurls: seedurls}); // Will default to call constructor and p_store if master
         if (obj.keychain) {
-            await obj.keychain.p_push(obj, verbose);
+            await obj.keychain.p_push(obj);
         }
         for (let j in kids ) {
             // noinspection JSUnfilteredForInLoop
@@ -279,7 +279,7 @@ class Domain extends KeyValueTable {
             && (name === subdomain.name); // Check name matches
     }
 
-    async p_register(name, registrable, verbose) {
+    async p_register(name, registrable) {
         /*
         Register an object
         name:   What to register it under, relative to "this"
@@ -289,12 +289,12 @@ class Domain extends KeyValueTable {
          */
         if (!(registrable instanceof Domain || registrable instanceof Leaf)) {
             // If it isnt a Domain or Leaf then build a name to point at it
-            registrable = await Leaf.p_new(registrable, verbose)
+            registrable = await Leaf.p_new(registrable)
         }
         registrable.name =  name;
         this.sign(registrable);
         console.assert(this.verify(name, registrable));   // It better verify !
-        await this.p_set(name, registrable, {publicOnly: true, encryptIfAcl: false, verbose: verbose});
+        await this.p_set(name, registrable, {publicOnly: true, encryptIfAcl: false});
     }
     /*
         ------------ Resolution ---------------------
@@ -306,27 +306,26 @@ class Domain extends KeyValueTable {
 
     // use p_getall to get all registered names
 
-    static async p_rootSet( {verbose=false}={}){
+    static async p_rootSet( ){
         //TODO-CONFIG put this (and other TODO-CONFIG into config file)
-        this.root = await SmartDict.p_fetch(rootSetPublicUrls,  {verbose, timeoutMS: 5000});
+        this.root = await SmartDict.p_fetch(rootSetPublicUrls,  {timeoutMS: 5000});
     }
 
-    static async p_rootResolve(path, {verbose=false}={}) {
-        console.group("Resolving:",path);
+    static async p_rootResolve(path) {
+        debugdomain("Resolving: %s in root", path);
         if (!this.root)
-            await this.p_rootSet({verbose});
+            await this.p_rootSet();
         if (path.startsWith("dweb:"))
             path = path.slice(5);
         if (path[0] === "/") {  // Path should start at root, but sometimes will be relative
             path = path.slice(1);
         }
-        const res = await this.root.p_resolve(path, {verbose});
-        console.log("Resolved path",path, "to", res[0] ? (await res[0].p_printable({maxindent: 0})) : "undefined", res[1] ? "remaining:" + res[1] : "");
-        console.groupEnd();
+        const res = await this.root.p_resolve(path);
+        debugdomain("Resolved path %s to %s %s", path, res[0] ? (await res[0].p_printable({maxindent: 0})) : "undefined", res[1] ? "remaining:" + res[1] : "");
         return res;
 
     }
-    async p_resolve(path, {verbose=false}={}) { // Note merges verbose into options, makes more sense since both are optional
+    async p_resolve(path) {
         /*
         Resolves a path, should resolve to the leaf
         resolves to:    [ Leaf, remainder ]
@@ -335,22 +334,22 @@ class Domain extends KeyValueTable {
         if (path[0] === "/") {
             throw new errors.CodingError(`p_resolve paths should be relative, got: ${path}`)
         }
-        if (verbose) console.log("resolving",path,"in",this.name);
+        debugdomain("resolving %s in %s", path, this.name);
         let res;
         const remainder = path.split('/');
         const name = remainder.shift();
-        res = await this.p_getMerge(name, verbose);
+        res = await this.p_getMerge(name);
         if (res) {
-            res = await SmartDict._after_fetch(res, [], verbose);  //Turn into an object
+            res = await SmartDict._after_fetch(res, []);  //Turn into an object
             this.verify(name, res);                                     // Check its valid
         }
         if (res) { // Found one
             if (!remainder.length) // We found it
                 return [ res, undefined ] ;
-            return await res.p_resolve(remainder.join('/'), {verbose});           // ===== Note recursion ====
+            return await res.p_resolve(remainder.join('/'));           // ===== Note recursion ====
             //TODO need other classes e.g. SD  etc to handle p_resolve as way to get path
         } else {
-            console.log("Unable to resolve",name,"in",this.name);
+            console.warn("Unable to resolve",name,"in",this.name);
             return [ undefined, path ];
         }
     }
@@ -360,18 +359,18 @@ class Domain extends KeyValueTable {
         return `${indent.repeat(indentlevel)}${this.name} @ ${this.tablepublicurls.join(', ')}${this.expires ? " expires:"+this.expires : ""}\n`
             + ((indentlevel >= maxindent) ? "..." : (await Promise.all((await this.p_keys()).map(k => this._map[k].p_printable({indent, indentlevel: indentlevel + 1, maxindent: maxindent})))).join(''))
     }
-    static async p_setupOnce({verbose=false} = {}) {
+    static async p_setupOnce() {
         //const metadatagateway = 'http://localhost:4244/leaf/archiveid';
         //const metadataGateway = 'https://dweb.me/leaf/archiveid';
         const metadataGateway = 'https://dweb.archive.org/leaf';
         //TODO-NAMING change passphrases to something secret, figure out what need to change
         const pass1 = "all knowledge for all time to everyone for free"; // TODO-NAMING make something secret
         const pass2 = "Replace this with something secret"; // Base for other keys during testing - TODO-NAMING replace with keygen: true so noone knows private key
-        const archiveadminkc = await KeyChain.p_new({name: "Archive.org Admin"}, {passphrase: "Archive.org Admin/" + pass1}, verbose);  // << THis is what you login as
-        //const archiveadminacl = await AccessControlList.p_new({name: "Archive.org Administrators", _acl: archiveadminkc}, true, {keygen: true}, verbose, {}, archiveadminkc);  //data, master, key, verbose, options, kc
-        //const archiveadminkey = new KeyPair({name: "Archive.org Admin", key: {keygen: true}, _acl: archiveadminkc}, verbose );
+        const archiveadminkc = await KeyChain.p_new({name: "Archive.org Admin"}, {passphrase: "Archive.org Admin/" + pass1});  // << THis is what you login as
+        //const archiveadminacl = await AccessControlList.p_new({name: "Archive.org Administrators", _acl: archiveadminkc}, true, {keygen: true}, {}, archiveadminkc);  //data, master, key, options, kc
+        //const archiveadminkey = new KeyPair({name: "Archive.org Admin", key: {keygen: true}, _acl: archiveadminkc} );
         //await archiveadminkc.p_push(archiveadminkey);
-        //await archiveadminacl.p_add_acle(archiveadminkey, {name: "Archive.org Admin"}, verbose );
+        //await archiveadminacl.p_add_acle(archiveadminkey, {name: "Archive.org Admin"} );
 
         /* SECURITY DOCS
             archiveadminkc is the keychain owned by the Archive Administrator (who logs in with its ID/passphrase)
@@ -382,31 +381,31 @@ class Domain extends KeyValueTable {
         */
         //TODO-NAME add ipfs address and ideally ipns address to archiveOrgDetails record
         //p_new should add registrars at whichever compliant transports are connected (YJS, HTTP)
-        Domain.root = await Domain.p_new({_acl: archiveadminkc, name: "", keychain: archiveadminkc}, true, {passphrase: pass2+"/"}, verbose, [], {   //TODO-NAME will need a secure root key and a way to load here securely
-            arc: await Domain.p_new({_acl: archiveadminkc, keychain: archiveadminkc},true, {passphrase: pass2+"/arc"}, verbose, [], { // /arc domain points at our top level resolver.
-                "archive.org": await Domain.p_new({_acl: archiveadminkc, keychain: archiveadminkc}, true, {passphrase: pass2+"/arc/archive.org"}, verbose, [], {
+        Domain.root = await Domain.p_new({_acl: archiveadminkc, name: "/", keychain: archiveadminkc}, true, {passphrase: pass2+"/"}, [], {   //TODO-NAME will need a secure root key and a way to load here securely
+            arc: await Domain.p_new({_acl: archiveadminkc, keychain: archiveadminkc},true, {passphrase: pass2+"/arc"}, [], { // /arc domain points at our top level resolver.
+                "archive.org": await Domain.p_new({_acl: archiveadminkc, keychain: archiveadminkc}, true, {passphrase: pass2+"/arc/archive.org"}, [], {
                     ".": await Leaf.p_new({urls: ["https://dweb.me/archive/archive.html"], mimetype: "text/html",
-                        metadata: {htmlusesrelativeurls: true}}, verbose, {}),
-                    "about": await Leaf.p_new({urls: ["https://archive.org/about/"], metadata: {htmlpath: "/" }}, verbose, {}),
+                        metadata: {htmlusesrelativeurls: true}}, {}),
+                    "about": await Leaf.p_new({urls: ["https://archive.org/about/"], metadata: {htmlpath: "/" }}, {}),
                     //TODO-ARC change these once dweb.me fixed
                     "details": await Leaf.p_new({urls: ["https://dweb.me/archive/archive.html"], mimetype: "text/html",
-                        metadata: {htmlusesrelativeurls: true, htmlpath: "item"}}, verbose,[], {}),
-                    "examples": await Leaf.p_new({urls: ["https://dweb.me/archive/examples/"], metadata: {htmlpath: "/" }}, verbose, {}),
-                    "images": await Leaf.p_new({urls: ["https://dweb.me/archive/images/"], metadata: {htmlpath: "/" }}, verbose, {}),
-                    "serve": await Leaf.p_new({urls: ["https://dweb.archive.org/download/"], metadata: {htmlpath: "/" }}, verbose, {}), // Example is in commute.description
-                    //"metadata": await Domain.p_new({_acl: archiveadminkc, keychain: archiveadminkc}, true, {passphrase: pass2+"/arc/archive.org/metadata"}, verbose, [metadataGateway], {}),
-                    "metadata": await Leaf.p_new({urls: ["gun:/gun/arc/archive.org/metadata/", "https://dweb.archive.org/metadata/"], metadata: {htmlpath: "/" }}, verbose, {}),
-                    //"metadata": await Leaf.p_new({urls: ["gun:/gun/arc/archive.org/metadata/"], metadata: {htmlpath: "/" }}, verbose, {}),  //TODO-GUN See hack - where - to use temp?
+                        metadata: {htmlusesrelativeurls: true, htmlpath: "item"}},[], {}),
+                    "examples": await Leaf.p_new({urls: ["https://dweb.me/archive/examples/"], metadata: {htmlpath: "/" }}, {}),
+                    "images": await Leaf.p_new({urls: ["https://dweb.me/archive/images/"], metadata: {htmlpath: "/" }}, {}),
+                    "serve": await Leaf.p_new({urls: ["https://dweb.archive.org/download/"], metadata: {htmlpath: "/" }}, {}), // Example is in commute.description
+                    //"metadata": await Domain.p_new({_acl: archiveadminkc, keychain: archiveadminkc}, true, {passphrase: pass2+"/arc/archive.org/metadata"}, [metadataGateway], {}),
+                    "metadata": await Leaf.p_new({urls: ["gun:/gun/arc/archive.org/metadata/", "https://dweb.archive.org/metadata/"], metadata: {htmlpath: "/" }}, {}),
+                    //"metadata": await Leaf.p_new({urls: ["gun:/gun/arc/archive.org/metadata/"], metadata: {htmlpath: "/" }}, {}),  //TODO-GUN See hack - where - to use temp?
                     "search.php": await Leaf.p_new({urls: ["https://dweb.me/archive/archive.html"], mimetype: "text/html",
-                        metadata: {htmlusesrelativeurls: true, htmlpath: "query"}}, verbose, {}),
+                        metadata: {htmlusesrelativeurls: true, htmlpath: "query"}}, {}),
                     "search": await Leaf.p_new({urls: ["https://dweb.me/archive/archive.html"], mimetype: "text/html",
-                        metadata: {htmlusesrelativeurls: true, htmlpath: "query"}}, verbose, {})
+                        metadata: {htmlusesrelativeurls: true, htmlpath: "query"}}, {})
                     //Note I was seeing a lock error here, but cant repeat now - commenting out one of these last two lines seemed to clear it.
                 })
             }),
-            ipfs: await Leaf.p_new({urls: ["http://ipfs.io/ipfs/", "https://dweb.me/ipfs/"],  metadata: {htmlpath: "/" }}, verbose, {}),
+            ipfs: await Leaf.p_new({urls: ["http://ipfs.io/ipfs/", "https://dweb.me/ipfs/"],  metadata: {htmlpath: "/" }}, {}),
             //TODO-IPFS, running into problems as of 22Jul2018 with files.cat, so skipping direct ipfs load till figure out.
-            //ipfs: await Leaf.p_new({urls: ["ipfs:/ipfs/", "http://ipfs.io/ipfs/", "https://dweb.me/ipfs/"],  metadata: {htmlpath: "/" }}, verbose, {}),
+            //ipfs: await Leaf.p_new({urls: ["ipfs:/ipfs/", "http://ipfs.io/ipfs/", "https://dweb.me/ipfs/"],  metadata: {htmlpath: "/" }}, {}),
         }); //root
         const testing = Domain.root.tablepublicurls.map(u => u.includes("localhost")).includes(true);
         if (JSON.stringify(Domain.root._publicurls) === JSON.stringify(rootSetPublicUrls)) {
@@ -419,10 +418,10 @@ class Domain extends KeyValueTable {
         if (metadatatableurl && !testing) {
             console.log("Put this in gateway config.py config.domains.metadata:", metadatatableurl);
         }
-        if (verbose) console.log(await this.root.p_printable());
+        debugdomain(await this.root.p_printable());
     }
 
-    static async p_resolveNames(name, {verbose=false}={}) {
+    static async p_resolveNames(name) {
         /* Turn an array of urls into another array, resolving any names if possible and leaving other URLs untouched
         /* Try and resolve a name,
         name:   One, or an array of Names of the form dweb:/ especially dweb:/arc/archive.org/foo
@@ -430,10 +429,10 @@ class Domain extends KeyValueTable {
         */
         if (Array.isArray(name)) {
             // Note can't use "this" in here, as since its passed as a callback to DwebTransports, "this" is DwebTransports
-            return [].concat(...await Promise.all(name.map(u => u.startsWith("dweb:/arc") ? Domain.p_resolveNames(u, {verbose}) : [u])))
+            return [].concat(...await Promise.all(name.map(u => u.startsWith("dweb:/arc") ? Domain.p_resolveNames(u) : [u])))
         } else {
             name = name.replace("dweb:/", ""); // Strip leading dweb:/ before resolving in root
-            const res = await Domain.p_rootResolve(name, {verbose});     // [ Leaf object, remainder ] //TODO-NAME see comments in p_rootResolve about FAKEFAKEFAKE
+            const res = await Domain.p_rootResolve(name);     // [ Leaf object, remainder ] //TODO-NAME see comments in p_rootResolve about FAKEFAKEFAKE
             //if (!(res[0] && (res[0].name === name.split('/').splice(-1)[0]) && !res[1])) {   // checks /aaa/bbb/ccc resolved to something with name=ccc and no remainder
             if (!(res[0] && !res[1])) {   // checks /aaa/bbb/ccc resolved to something with name=ccc and no remainder
                 return [];  // No urls
@@ -448,14 +447,14 @@ class Domain extends KeyValueTable {
          */
         return KeyChain.find_in_keychains({tablepublicurls: this.tablepublicurls})
     }
-    static async p_test(verbose) {
-        if (verbose) console.log("KeyValueTable testing starting");
+    static async p_test() {
+        console.log("KeyValueTable testing starting");
         try {
             const pass = "Testing pass phrase";
             //Register the toplevel domain
             // Set mnemonic to value that generates seed "01234567890123456789012345678901"
             const mnemonic = "coral maze mimic half fat breeze thought champion couple muscle snack heavy gloom orchard tooth alert cram often ask hockey inform broken school cotton"; // 32 byte
-            const kc = await KeyChain.p_new({name: "test_keychain kc"}, {mnemonic: mnemonic}, verbose);    //Note in KEYCHAIN 4 we recreate exactly same way.
+            const kc = await KeyChain.p_new({name: "test_keychain kc"}, {mnemonic: mnemonic});    //Note in KEYCHAIN 4 we recreate exactly same way.
             Domain.root = await Domain.p_new({
                 name: "",   // Root is "" so that [name,name].join('/' is consistent for next level.
                 keys: [],
@@ -463,50 +462,49 @@ class Domain extends KeyValueTable {
                 expires: undefined,
                 _acl: kc,
                 _map: undefined,   // May need to define this as an empty KVT
-            }, true, {passphrase: pass+"/"}, verbose);   //TODO-NAME will need a secure root key
+            }, true, {passphrase: pass+"/"});   //TODO-NAME will need a secure root key
             //Now register a subdomain
             const testingtoplevel = await Domain.p_new({_acl: kc}, true, {passphrase: pass+"/testingtoplevel"});
-            await Domain.root.p_register("testingtoplevel", testingtoplevel, verbose);
+            await Domain.root.p_register("testingtoplevel", testingtoplevel);
             const adomain = await Domain.p_new({_acl: kc}, true, {passphrase: pass+"/testingtoplevel/adomain"});
-            await testingtoplevel.p_register("adomain", adomain, verbose);
-            const item1 = await new SmartDict({"name": "My name", "birthdate": "2001-01-01"}, verbose).p_store();
-            await adomain.p_register("item1", item1, verbose);
+            await testingtoplevel.p_register("adomain", adomain);
+            const item1 = await new SmartDict({"name": "My name", "birthdate": "2001-01-01"}).p_store();
+            await adomain.p_register("item1", item1);
             // Now try resolving on a client - i.e. without the Domain.root privte keys
-            const ClientDomainRoot = await SmartDict.p_fetch(Domain.root._publicurls, verbose);
-            let res= await ClientDomainRoot.p_resolve('testingtoplevel/adomain/item1', {verbose});
-            if (verbose) console.log("Resolved to",await res[0].p_printable({maxindent:2}),res[1]);
+            const ClientDomainRoot = await SmartDict.p_fetch(Domain.root._publicurls);
+            let res= await ClientDomainRoot.p_resolve('testingtoplevel/adomain/item1');
+            console.log("Resolved to",await res[0].p_printable({maxindent:2}),res[1]);
             console.assert(res[0].urls[0] === item1._urls[0]);
             // Now some failure cases / errors
-            if (verbose) console.log("-Expect unable to completely resolve");
-            res= await Domain.root.p_resolve('testingtoplevel/adomain/itemxx', {verbose});
+            console.log("-Expect unable to completely resolve");
+            res= await Domain.root.p_resolve('testingtoplevel/adomain/itemxx');
             console.assert(typeof res[0] === "undefined");
-            if (verbose) console.log("-Expect unable to completely resolve");
-            res= await Domain.root.p_resolve('testingtoplevel/adomainxx/item1', {verbose});
+            console.log("-Expect unable to completely resolve");
+            res= await Domain.root.p_resolve('testingtoplevel/adomainxx/item1');
             console.assert(typeof res[0] === "undefined");
-            if (verbose) console.log("-Expect unable to completely resolve");
-            res= await Domain.root.p_resolve('testingtoplevelxx/adomain/item1', {verbose});
+            console.log("-Expect unable to completely resolve");
+            res= await Domain.root.p_resolve('testingtoplevelxx/adomain/item1');
             console.assert(typeof res[0] === "undefined");
-            if (verbose) console.log("Structure of registrations");
-            if (verbose) console.log(await Domain.root.p_printable());
+            console.log("Structure of registrations");
+            console.log(await Domain.root.p_printable());
             // Commented out as should run under setup.js with correct transports
-            // await this.p_setupOnce(verbose);
+            // await this.p_setupOnce();
 
             /* Dont expect this to quite work now not doing setupOnce in above test
-            verbose=true;
-            if (verbose) console.log("Next line should attempt to find in metadata table *YJS or HTTP) then try leaf/archiveid?key=commute");
+            console.log("Next line should attempt to find in metadata table *YJS or HTTP) then try leaf/archiveid?key=commute");
             let itemid = "commute";
             let name = `arc/archive.org/metadata/${itemid}`;
-            res = await Domain.root.p_resolve(name, {verbose});
+            res = await Domain.root.p_resolve(name);
             //TODO-NAME note p_resolve is faking signature verification on FAKEFAKEFAKE - will also need to error check that which currently causes exception
             console.assert(res[0].name === "/"+name);
-            if (verbose) console.log("Resolved",name,"to",await res[0].p_printable({maxindent:2}), res[1]);
+            console.log("Resolved",name,"to",await res[0].p_printable({maxindent:2}), res[1]);
             let metadata = await DwebTransports.p_rawfetch(res[0].urls); // Using Block as its multiurl and might not be HTTP urls
-            if (verbose) console.log("Retrieved metadata",JSON.stringify(metadata));
+            console.log("Retrieved metadata",JSON.stringify(metadata));
             console.log("---Expect failure to resolve 'arc/archive.org/details/commute'");
             console.assert(metadata.metadata.identifier === itemid);
             //TODO-NAME dont think next will work.
             try { //TODO-NAME will need to figure out what want this to do
-                res = await Domain.root.p_resolve("arc/archive.org/details/commute", {verbose});
+                res = await Domain.root.p_resolve("arc/archive.org/details/commute");
                 console.log("resolved to",await res[0].p_printable({maxindent:2}), res[1] ? `Remainder=${res[1]}`: "");
             } catch(err) {
                 console.log("Got error",err);
@@ -519,22 +517,22 @@ class Domain extends KeyValueTable {
             throw(err)
         }
     }
-    static async p_test_gateway(opts={}, verbose=false) {
+    static async p_test_gateway(opts={}) {
         // Has to be tested against the gateway, not localhost
-        if (verbose) {console.log("Domain.p_test_gateway")}
+        console.log("Domain.p_test_gateway");
         try {
             Domain.root = undefined; // Clear out test root
-            if (verbose) console.log("NAMES connected");
-            let res = await this.p_resolveNames(["dweb:/arc/archive.org/metadata/commute"], {verbose});
+            console.log("NAMES connected");
+            let res = await this.p_resolveNames(["dweb:/arc/archive.org/metadata/commute"]);
             //console.assert(res.includes("https://dweb.me/metadata/archiveid/commute"))
-            console.assert(res.includes("https://dweb.me/arc/archive.org/metadata/commute"));
+            console.assert(res.includes("https://dweb.archive.org/metadata/commute"));
         } catch(err) {
             console.log("Exception thrown in Domain.p_test_gateway:", err.message);
             throw err;
         }
     }
 
-    static async p_resolveAndBoot(name, {verbose=false, opentarget="_self", search_supplied=undefined, openChromeTab=undefined}={}) {
+    static async p_resolveAndBoot(name, {opentarget="_self", search_supplied=undefined, openChromeTab=undefined}={}) {
         /*
         Utility function for bootloader.html
         Try and resolve a name, if get a Leaf then boot it, if get another domain then try and resolve the "." and boot that.
@@ -547,17 +545,17 @@ class Domain extends KeyValueTable {
         let nameandsearch = name.split('?');
         name = nameandsearch[0];
         if (nameandsearch.length) search_supplied = nameandsearch[1];
-        let res = await this.p_rootResolve(name, {verbose});
+        let res = await this.p_rootResolve(name);
         let resolution = res[0];    // Will be a Leaf or a Domain
         let remainder = res[1];
         if (resolution instanceof Leaf) {
-            await resolution.p_boot({remainder, search_supplied, opentarget, openChromeTab, verbose}); // Throws error if fails
+            await resolution.p_boot({remainder, search_supplied, opentarget, openChromeTab}); // Throws error if fails
         } else if ((resolution instanceof Domain) && (!remainder)) {
-            res = await resolution.p_resolve(".", {verbose});
+            res = await resolution.p_resolve(".");
             resolution = res[0];
             remainder = res[1];
             if (resolution instanceof Leaf) {
-                await resolution.p_boot({remainder, search_supplied, opentarget, openChromeTab, verbose}); // Throws error if fails
+                await resolution.p_boot({remainder, search_supplied, opentarget, openChromeTab}); // Throws error if fails
             } else {
                 // noinspection ExceptionCaughtLocallyJS
                 throw new Error("Path resolves to a Domain even after looking at '.'");

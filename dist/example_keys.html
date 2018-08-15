@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <title>Dweb example - Keys, Locks and Authentication</title>
     <link rel='stylesheet' href='example_styles.css'>
+    <script type="text/javascript">localStorage.debug = "dweb-transports dweb-transports:* dweb-objects dweb-objects:*";</script>
     <script type="text/javascript" src="dweb-transports-bundle.js"></script>
     <!--<script type="text/javascript" src="dweb-serviceworker-proxy-bundle.js"></script><!--ServiceWorker version-->
     <script type="text/javascript" src="dweb-objects-bundle.js"></script>
@@ -138,7 +139,6 @@
 <script type="text/javascript">
     // These have to be at global level so they can be found anywhere.
     var searchparams = new URL(window.location.href).searchParams;
-    var verbose = searchparams.get("verbose") || false;  // Anything specified for verbose is true (could truthify buy no need)
     main();
 </script>
 </body>

@@ -5,6 +5,7 @@
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     <title>DWEB CommonList example</title>
     <link rel='stylesheet' href='example_styles.css'>
+    <script type="text/javascript">localStorage.debug = "dweb-transports dweb-transports:* dweb-objects dweb-objects:*";</script>
     <script type="text/javascript" src="dweb-transports-bundle.js"></script>
     <!--<script type="text/javascript" src="dweb-serviceworker-proxy-bundle.js"></script><!--ServiceWorker version-->
     <script type="text/javascript" src="dweb-objects-bundle.js"></script>
@@ -19,11 +20,11 @@
             console.log("createit ---");
             // Get the data from the form
             let dict = form2dict("newform");
-            <!--CommonList(data, master, key, verbose, options)-->
-            let obj = await DwebObjects.CommonList.p_new(dict, true, {keygen: true}, verbose, {_allowunsafestore: true});
+            <!--CommonList(data, master, key, options)-->
+            let obj = await DwebObjects.CommonList.p_new(dict, true, {keygen: true}, {_allowunsafestore: true});
             // _allowunsafestore is set to true since AccessControlList not set yet, so storing unencrypted.
             console.log("Created=", obj);
-            await obj.p_store(verbose);
+            await obj.p_store();
             // Now re fetch it from Dweb and display the object
             fetchanddisplay(obj._urls);
         } catch(err) { console.log("ERROR:",err); alert(err.message); }
@@ -36,8 +37,8 @@
             // Get the data from the form
             let dict = form2dict("entryform");
             // Create a new object and add to the list
-            let obj = new DwebObjects.SmartDict(dict, verbose );
-            await cl.p_push(obj, verbose);
+            let obj = new DwebObjects.SmartDict(dict );
+            await cl.p_push(obj);
             console.log("Added:",obj);                             // Show on the Javascript console
             addlistresult("listresults", obj);                  // Display locally as listmonitor will not pick up local entries
         } catch(err){ console.log("ERROR:",err); alert(err.message); }
@@ -59,7 +60,7 @@
         urls = await DwebTransports.p_urlsFrom(urls);
         try {
             //Note cl below is a global so can be accessed for push
-            cl = await DwebObjects.SmartDict.p_fetch(urls, verbose);   // Throws TransportError immediately if url invalid
+            cl = await DwebObjects.SmartDict.p_fetch(urls);   // Throws TransportError immediately if url invalid
             console.log("Fetched=", cl);
             // Only display the input prompt if its a master list.
             if (cl._master) { show("entryrow"); } else { hide("entryrow"); }
@@ -67,15 +68,15 @@
             displayobj("retrievaldestn", cl);
             deletechildren("listresults");
             // Fetch the current elements from the list if any
-            let objs = await cl.p_list_then_elements({verbose});   //This adds the listmonitor as a side effect, so updated as changes
+            let objs = await cl.p_list_then_elements();   //This adds the listmonitor as a side effect, so updated as changes
             console.log("objs=",JSON.stringify(objs));
             //Add the elements to the list
             objs.map((obj) => addlistresult("listresults", obj));
             // Setup a EventListener so anything new added to the list us added to the display
             cl.addEventListener("insert", (event) => {
-                if (verbose) console.log("fetchanddisplay",event);
+                console.log("fetchanddisplay",event);
                 let sig = event.detail;
-                sig.p_fetchdata({verbose})
+                sig.p_fetchdata()
                     .then((obj) => addlistresult("listresults", obj))
                 });
             // Redisplay it in the object browser for debugging
@@ -209,7 +210,6 @@
     // This is the "main()", starts a transport, checks its status, and if appropriate to app opens a URL passed
     var searchparams = new URL(window.location.href).searchParams;
     var url = searchparams.get("url");
-    var verbose = searchparams.get("verbose") || false;  // Anything specified for verbose is true (could truthify buy no need)
     main();
 </script>
 </body>

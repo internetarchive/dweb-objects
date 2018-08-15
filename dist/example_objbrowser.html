@@ -4,6 +4,7 @@
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     <title>DWEB Object Browser example</title>
     <link rel='stylesheet' href='example_styles.css'>
+    <script type="text/javascript">localStorage.debug = "dweb-transports dweb-transports:* dweb-objects dweb-objects:*";</script>
     <script type="text/javascript" src="dweb-transports-bundle.js"></script>
     <!--<script type="text/javascript" src="dweb-serviceworker-proxy-bundle.js"></script><!--ServiceWorker version-->
     <script type="text/javascript" src="dweb-objects-bundle.js"></script>
@@ -18,9 +19,9 @@
     }
 
     async function fetchanddisplay(urls) {
-        if (verbose) console.log("Fetching urls=", urls);
-        let sd = await DwebObjects.SmartDict.p_fetch(urls, verbose);
-        if (verbose) console.log("Fetched=",sd);
+        console.log("Fetching urls=", urls);
+        let sd = await DwebObjects.SmartDict.p_fetch(urls);
+        console.log("Fetched=",sd);
         deletechildren("ObjBrowserDiv");
         await sd.p_objbrowser("ObjBrowserDiv");
     }
@@ -67,7 +68,6 @@
     // This is the "main()", starts a transport, checks its status, and if appropriate to app opens a URL passed
     var searchparams = new URL(window.location.href).searchParams;
     var url = searchparams.get("url");
-    var verbose = searchparams.get("verbose") || false;  // Anything specified for verbose is true (could truthify buy no need)
     main();
 </script>
 </body>

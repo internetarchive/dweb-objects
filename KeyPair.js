@@ -1,5 +1,6 @@
 const errors = require('./Errors');
 const sodium = require("libsodium-wrappers");
+const debugkeypair = require('debug')('dweb-objects:keypair');
 const SmartDict = require("./SmartDict");
 const utils = require('./utils'); // Utility functions
 //const crypto = require('crypto'); // Needed to do a simple sha256 which doesnt appear to be in libsodium
@@ -26,13 +27,13 @@ class KeyPair extends SmartDict {
     }
      */
 
-    constructor(data, verbose, options) {
+    constructor(data, options) {
         /*
         Create a new KeyPair
 
         :param data: Data to initialize with (see Fields above)
          */
-        super(data, verbose, options);    // SmartDict takes data=json or dict
+        super(data, options);    // SmartDict takes data=json or dict
         if (!this._publicurls) this._publicurls = [];   // Initialize to empty array if not restored with data (which will happen if its master that was previously stored)
         this.table = "kp";
     }
@@ -45,7 +46,6 @@ class KeyPair extends SmartDict {
          :param value:  Any - stored in field, for key can be urlsafebase64 string, or Uint8Array, or dict in libsodium format above.
         #Backported to PY 20180703
          */
-        let verbose = false;
         if (name === "key") {
             this._key_setter(value);
         } else if (name === "private") {
@@ -68,8 +68,7 @@ class KeyPair extends SmartDict {
             seed:       32 byte string or buffer
         #Backported to PY 20180703
          */
-        let verbose = false;
-        if (verbose) console.log("KP._key_setter");
+        //debugkeypair("KP._key_setter");
         if (typeof value === "string" || Array.isArray(value)) {
             this._importkey(value);
         } else {    // Should be object, or maybe undefined ?
@@ -94,7 +93,7 @@ class KeyPair extends SmartDict {
                     delete value.keygen;
                 }
                 if (value.seed) {
-                    value = KeyPair._keyfromseed(value.seed, KeyPair.KEYTYPESIGNANDENCRYPT, verbose);
+                    value = KeyPair._keyfromseed(value.seed, KeyPair.KEYTYPESIGNANDENCRYPT);
                 }
             }
             this._key = value;
@@ -109,19 +108,19 @@ class KeyPair extends SmartDict {
         return this._publicurls.length || ! KeyPair._key_has_private(this._key)
     }
 
-    async p_store(verbose) {
+    async p_store() {
         /*
         Store public and private versions of this object if not already stored
          */
         if (super.stored())
             return; // Already stored
         if (!this.storedpublic()) { // Haven't stored a public version yet
-            await this._p_storepublic(verbose);
+            await this._p_storepublic();
         }
-        return super.p_store(verbose)
+        return super.p_store()
     }
 
-    async _p_storepublic(verbose) {
+    async _p_storepublic() {
         /*
         // Store public version, dont encrypt on storing as want public part to be publicly visible
           */
@@ -129,11 +128,11 @@ class KeyPair extends SmartDict {
         delete oo._key;
         delete oo._acl; // Dont secure public key
         oo.key = this.publicexport();    //Copy key except for use public version instead of private
-        let ee = new this.constructor(oo, verbose);
+        let ee = new this.constructor(oo);
         //TODO change to use the getdata pattern from other classes instead of "new"
         // This will require preflight being changed to notice that _master has been set to false if publicOnly=true (_getdata will delete _acl)
-        // this._publicurls = await DwebTransports.p_rawstore( this._getdata({publicOnly: true, encryptIfAcl:false}), {verbose});
-        await ee.p_store(verbose);
+        // this._publicurls = await DwebTransports.p_rawstore( this._getdata({publicOnly: true, encryptIfAcl:false}));
+        await ee.p_store();
         this._publicurls = ee._urls;
     }
 
@@ -160,7 +159,7 @@ class KeyPair extends SmartDict {
         return dd
     }
 
-    static _keyfromseed(seed, keytype, verbose) {
+    static _keyfromseed(seed, keytype) {
         /*
         Generate a key from a seed,
 
@@ -179,7 +178,6 @@ class KeyPair extends SmartDict {
             key.encrypt = sodium.crypto_box_seed_keypair(key.seed); // Object { publicKey: Uint8Array[32], privateKey: Uint8Array[64] } <<maybe other keyType
             // note this doesnt have the keyType field
         }
-        //if (verbose) { console.log("key generated:",key); }
         return key;
     }
 
@@ -310,7 +308,7 @@ class KeyPair extends SmartDict {
          return sodium.crypto_box_open_easy(data, nonce, signer.keypair._key.encrypt.publicKey, this._key.encrypt.privateKey, outputformat);
     }
 
-    sign(signable, verbose) {
+    sign(signable) {
         /*
         Sign and date a url using public key function.
         Pair of "verify()"
@@ -442,9 +440,9 @@ class KeyPair extends SmartDict {
     }
 
 
-    static test(verbose) {
+    static test() {
         // First test some of the lower level libsodium functionality - create key etc
-        if (verbose) console.log("KeyPair.test starting");
+        debugkeypair("KeyPair.test starting");
         let qbf="The quick brown fox ran over the lazy duck";
         let key = sodium.randombytes_buf(sodium.crypto_shorthash_KEYBYTES);
         let shash_u64 = sodium.crypto_shorthash('test', key, 'urlsafebase64'); // urlsafebase64 is support added by mitra
@@ -452,14 +450,14 @@ class KeyPair extends SmartDict {
         let hash_hex = sodium.crypto_generichash(32, qbf, key, 'hex'); // Try this with null as the key
         let hash_64 = sodium.crypto_generichash(32, qbf, key, 'base64'); // Try this with null as the key
         let hash_u64 = sodium.crypto_generichash(32, qbf, key, 'urlsafebase64'); // Try this with null as the key
-        if (verbose) { console.log("hash_hex = ",shash_u64, hash_hex, hash_64, hash_u64); }
+        debugkeypair("hash_hex = %s %s %s %s",shash_u64, hash_hex, hash_64, hash_u64);
         if (hash_u64 !== "YOanaCqfg3UsKoqlNmVG7SFwLgDyB3aToEmLCH-vOzs=") { console.log("ERR Bad blake2 hash"); }
         let signingkey = sodium.crypto_sign_keypair();
-        if (verbose) { console.log("test: SigningKey=", signingkey); }
+        debugkeypair("test: SigningKey= %o", signingkey);
         let seedstr = "01234567890123456789012345678901";
         let seed = sodium.from_string(seedstr);
         let boxkey = sodium.crypto_box_seed_keypair(seed);
-        //FAILS - No round trip yet: if (verbose) { console.log("XXX@57 to_string=",sodium.to_string(boxkey.privateKey)); }
+        //FAILS - No round trip yet: debugkeypair("XXX@57 to_string=%s",sodium.to_string(boxkey.privateKey));
         //TODO-BACKPORT get better test from Python.test_client.test_keypair
     };
 }
