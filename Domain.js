@@ -127,6 +127,7 @@ class Leaf extends SmartDict {
     async p_resolve(path) {
         /*
         Sees it it can resolve the path in the Leaf further, because we know the type of object (e.g. can return subfield of some JSON)
+        Returns [Leaf, remainder path]
          */
         try {
             if (["application/json"].includes(this.mimetype) ) {
@@ -312,6 +313,8 @@ class Domain extends KeyValueTable {
     }
 
     static async p_rootResolve(path) {
+        // path of form (dweb:)/name/subname/subsubname/...
+        // returns
         debugdomain("Resolving: %s in root", path);
         if (!this.root)
             await this.p_rootSet();
