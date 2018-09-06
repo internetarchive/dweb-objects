@@ -16,7 +16,7 @@
     "libsodium-wrappers": "git+https://git@github.com/mitra42/libsodium.js.git",
     "multihashes": "^0.4.14",
     "sha.js": "latest",
-    "webpack": "^4.17.1"
+    "webpack": "^4.17.2"
   },
   "description": "Internet Archive Decentralized Web Transports Library",
   "devDependencies": {
@@ -41,5 +41,5 @@
     "help": "echo 'test (test it), webpack (build it), setuphttp (link files for http access);'",
     "setuphttp": "ln -s ../node_modules/@internetarchive/dweb-transports/dist/dweb-transports-bundle.js dist;"
   },
-  "version": "0.1.6"
+  "version": "0.1.8"
 }

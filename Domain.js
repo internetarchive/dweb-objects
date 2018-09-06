@@ -539,7 +539,7 @@ class Domain extends KeyValueTable {
         /*
         Utility function for bootloader.html
         Try and resolve a name, if get a Leaf then boot it, if get another domain then try and resolve the "." and boot that.
-        search_supplied: Anything supplied in after the ? in the original URL, should be added to the search string
+        search_supplied: Anything supplied in after the ? in the original URL, should be added to the url.search string (part after "?")
         opentarget:      Where to open the file, defaults to "_self"
         throws:          Error if cant resolve to a Leaf, or Error from loading the Leaf
 
@@ -547,7 +547,7 @@ class Domain extends KeyValueTable {
          */
         let nameandsearch = name.split('?');
         name = nameandsearch[0];
-        if (nameandsearch.length) search_supplied = nameandsearch[1];
+        if (nameandsearch.length > 1 && nameandsearch[1].length) search_supplied = nameandsearch[1];
         let res = await this.p_rootResolve(name);
         let resolution = res[0];    // Will be a Leaf or a Domain
         let remainder = res[1];
