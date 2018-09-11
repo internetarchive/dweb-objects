@@ -13,7 +13,7 @@
   "dependencies": {
     "@internetarchive/dweb-transports": "^0.1.14",
     "custom-event": "latest",
-    "libsodium-wrappers": "git+https://git@github.com/mitra42/libsodium.js.git",
+    "libsodium-wrappers": "^0.7.3",
     "multihashes": "^0.4.14",
     "sha.js": "latest",
     "webpack": "^4.17.2"

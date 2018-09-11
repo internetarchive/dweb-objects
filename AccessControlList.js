@@ -156,12 +156,12 @@ class AccessControlList extends CommonList {
             :return:                Decrypted data
             :throw:                 AuthenticationError if there are no tokens for our ViewerKeyPair that can decrypt the data
         */
-        let vks = KeyChain.mykeys(KeyPair);
+        let vks = KeyChain.mykeys(KeyPair); // Get a list of all my keys (across all the KeyChains)
         if (!Array.isArray(vks)) { vks = [ vks ]; } // Convert singular key into an array
-        for (let vk of vks) {
+        for (let vk of vks) { // Loop over all our keys  //TODO-ACLDICT
             let accesskeys = this._findtokens(vk, true); // Find any tokens in ACL for this KeyPair and decrypt to get accesskey (maybe empty)
             for (let accesskey of accesskeys) { // Try each of these keys
-                try {   // If can descrypt then return the data
+                try {   // If can decrypt then return the data
                     return KeyPair.sym_decrypt(data, accesskey, "text"); //data. symkey #Exception DecryptionFail
                 } catch(err) { //TODO Should really only catch DecryptionFailError, but presume not experiencing other errors
                     //do nothing,
@@ -192,6 +192,7 @@ class AccessControlList extends CommonList {
             } else {
                 debugacl("ACL.p_decryptdata of: %o",value);
                 let aclurls = value.acl;
+                // First check is one of our own objects (encrypted with one of our keychains) rather thn encrypted with one of our keys
                 let decryptor = KeyChain.keychains_find({_publicurls: aclurls});  // Matching KeyChain or None
                 if (!decryptor) {
                     // TODO-AUTHENTICATION probably add person - to - person version encrypted with receivers Pub Key

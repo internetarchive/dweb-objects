@@ -5,7 +5,7 @@ const { JSDOM } = jsdom;        //TODO - figure out what this does, dont underst
 htmlfake = '<!DOCTYPE html></html>';
 const dom = new JSDOM(htmlfake);
 document = dom.window.document;   // Note in JS can't see "document" like can in python
-process.env.DEBUG = "dweb-transports dweb-transports:* dweb-objects dweb-objects:*";
+//process.env.DEBUG = "dweb-transports dweb-transports:* dweb-objects dweb-objects:*";
 global.DwebTransports = require('@internetarchive/dweb-transports'); // Manage all Transports that are loaded
 //SEE-OTHER-ADDTRANSPORT
 // Higher level object classes
@@ -95,7 +95,7 @@ async function p_test_KeyChain(acl) {
         // Test sequence extracted from test.py
         const qbf = "The quick brown fox ran over the lazy duck";
         const vkpname = "test_keychain viewerkeypair";
-        const keypairexport = "NACL SEED:w71YvVCR7Kk_lrgU2J1aGL4JMMAHnoUtyeHbqkIi2Bk="; // So same result each time
+        const keypairexport = "NACL SEED:w71YvVCR7Kk_lrgU2J1aGL4JMMAHnoUtyeHbqkIi2Bk"; // So same result each time
         console.log("Keychain.test 0 - create");
         let kc = await KeyChain.p_new({name: "test_keychain kc"}, {mnemonic: mnemonic});    //Note in KEYCHAIN 4 we recreate exactly same way.
 

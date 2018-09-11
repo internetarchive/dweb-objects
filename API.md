@@ -283,7 +283,7 @@ KEYTYPEENCRYPT|2|Want a key for encryption
 KEYTYPESIGNANDENCRYPT|3|Want both types of key - usually used for encryption due to libsodium-wrappers limitations.
 
 ##### Libsodium implementation:
-Note that Uint8Array is the result of converting UrlSafeBase64 with sodium.to_urlsafebase64
+Note that Uint8Array is the result of converting UrlSafeBase64 with sodium.to_base64
 ```
 _key = {
     sign: { publicKey: Uint8Array, privateKey: Uint8Array, keyType: "ed25519" }

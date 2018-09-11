@@ -198,8 +198,9 @@ class KeyPair extends SmartDict {
         } else {
             let arr = value.split(':',2);
             let tag = arr[0];
-            let hash = arr[1];
-            let hasharr = sodium.from_urlsafebase64(hash);
+            let hash = (arr[1].length === 44 && arr[1][43] === '=') ? arr[1].slice(0,43) : arr[1];
+            console.assert(hash.length===43,"hash invalid length");
+            let hasharr = sodium.from_base64(hash);
             //See https://github.com/jedisct1/libsodium.js/issues/91 for issues
             if (!this._key) { this._key = {}}   // Only handles NACL style keys
             if (tag === "NACL PUBLIC")           { this._key["encrypt"] = {"publicKey": hasharr};
@@ -213,14 +214,14 @@ class KeyPair extends SmartDict {
 
     signingexport() {
         /* Useful to be able to export the signing key */
-        return "NACL VERIFY:"+sodium.to_urlsafebase64(this._key.sign.publicKey)
+        return "NACL VERIFY:"+sodium.to_base64(this._key.sign.publicKey)
     }
     publicexport() {    // TODO-BACKPORT probably change this on Python version as well
         /*
         :return: an array include one or more "NACL PUBLIC:abc123", or "NACL VERIFY:abc123" urlsafebase64 string.
          */
         let res = [];
-        if (this._key.encrypt) { res.push("NACL PUBLIC:"+sodium.to_urlsafebase64(this._key.encrypt.publicKey)) }
+        if (this._key.encrypt) { res.push("NACL PUBLIC:"+sodium.to_base64(this._key.encrypt.publicKey)) }
         if (this._key.sign) { res.push(this.signingexport()) }
         return res;
     }
@@ -239,7 +240,7 @@ class KeyPair extends SmartDict {
         //TODO-BACKPORT note this doesnt match the current Python implementation
         let key = this._key;
         if (key.seed) {
-            return "NACL SEED:" + (typeof(key.seed) === "string" ? key.seed : sodium.to_urlsafebase64(key.seed));
+            return "NACL SEED:" + (typeof(key.seed) === "string" ? key.seed : sodium.to_base64(key.seed));
         } else {
             throw new errors.ToBeImplementedError("Undefined function KeyPair.privateexport without seed", key);
             //TODO should export full set of keys prob as JSON
@@ -281,7 +282,7 @@ class KeyPair extends SmartDict {
         const ciphertext = sodium.crypto_box_easy(data, nonce, this._key.encrypt.publicKey, signer.keypair._key.encrypt.privateKey, "uint8array"); //(message, nonce, publicKey, secretKey, outputFormat)
 
         const combined = utils.mergeTypedArraysUnsafe(nonce, ciphertext);
-        return b64 ? sodium.to_urlsafebase64(combined) : sodium.to_string(combined);
+        return b64 ? sodium.to_base64(combined) : sodium.to_string(combined);
     }
     decrypt(data, signer, outputformat) {
         /*
@@ -301,7 +302,7 @@ class KeyPair extends SmartDict {
             throw new errors.EncryptionError("No private encryption key in" + JSON.stringify(this._key));
          // Note may need to convert data from unicode to str
          if (typeof(data) === "string") {   // If its a string turn into a Uint8Array
-            data = sodium.from_urlsafebase64(data);
+            data = sodium.from_base64(data);
          }
          let nonce = data.slice(0,sodium.crypto_box_NONCEBYTES);
          data = data.slice(sodium.crypto_box_NONCEBYTES);
@@ -322,7 +323,7 @@ class KeyPair extends SmartDict {
         if (! this._key.sign.privateKey) {
             throw new errors.EncryptionError("Can't sign with out private key. Key =" + JSON.stringify(this._key));
         }
-        let sig = sodium.crypto_sign_detached(signable, this._key.sign.privateKey, "urlsafebase64");
+        let sig = sodium.crypto_sign_detached(signable, this._key.sign.privateKey, "base64");
         //Can implement and uncomment next line if seeing problems verifying things that should verify ok - tests immediate verification
         this.verify(signable, sig);
         return sig;
@@ -337,8 +338,8 @@ class KeyPair extends SmartDict {
 
         Backported to Python 20180703
          */
-
-        let sig = sodium.from_urlsafebase64(urlb64sig);
+        // Older to_urlsafebase64 appended == to signatures, which aren't recognized by from_base64, strip them
+        let sig = sodium.from_base64((urlb64sig.length === 88 && urlb64sig[86]=== '=') ? urlb64sig.slice(0,86) : urlb64sig);
         let tested = sodium.crypto_sign_verify_detached(sig, signable, this._key.sign.publicKey);
         if (!tested) throw new errors.SigningError("Signature not verified");
         return true;
@@ -351,7 +352,7 @@ class KeyPair extends SmartDict {
         :param data:    urlsafebase64 encoded string
         :returns:       Uint8Array suitable for passing to libsodium
         */
-        return sodium.from_urlsafebase64(data);
+        return sodium.from_base64(data);
     };
     static b64enc(data) {
         /*
@@ -360,7 +361,7 @@ class KeyPair extends SmartDict {
         :param data:    Uint8Array (typically produced by libsodium)
         :returns:       string
         */
-        return sodium.to_urlsafebase64(data); };
+        return sodium.to_base64(data); };
 
     static randomkey() {
         /*
@@ -381,11 +382,11 @@ class KeyPair extends SmartDict {
          */
         // May need to handle different forms of sym_key for now assume urlbase64 encoded string
         if (!sym_key) throw new errors.CodingError('KP.sym_encrypt sym_key cant be empty');
-        sym_key = sodium.from_urlsafebase64(sym_key);
+        sym_key = sodium.from_base64(sym_key);
         const nonce = sodium.randombytes_buf(sodium.crypto_secretbox_NONCEBYTES);
         const ciphertext = sodium.crypto_secretbox_easy(data, nonce, sym_key, "uint8array");  // message, nonce, key, outputFormat
         const combined = utils.mergeTypedArraysUnsafe(nonce, ciphertext);
-        return b64 ? sodium.to_urlsafebase64(combined) : sodium.to_string(combined);
+        return b64 ? sodium.to_base64(combined) : sodium.to_string(combined);
     };
 
     static sym_decrypt(data, sym_key, outputformat) {
@@ -401,10 +402,10 @@ class KeyPair extends SmartDict {
             throw new errors.EncryptionError("KeyPair.sym_decrypt: meaningless to decrypt undefined, null or empty strings");
         // Note may need to convert data from unicode to str
         if (typeof(data) === "string") {   // If its a string turn into a Uint8Array
-            data = sodium.from_urlsafebase64(data);
+            data = sodium.from_base64(data);
         }
         if (typeof(sym_key) === "string") {   // If its a string turn into a Uint8Array
-            data = sodium.from_urlsafebase64(sym_key);
+            data = sodium.from_base64(sym_key);
         }
         let nonce = data.slice(0,sodium.crypto_box_NONCEBYTES);
         data = data.slice(sodium.crypto_box_NONCEBYTES);
@@ -445,11 +446,11 @@ class KeyPair extends SmartDict {
         debugkeypair("KeyPair.test starting");
         let qbf="The quick brown fox ran over the lazy duck";
         let key = sodium.randombytes_buf(sodium.crypto_shorthash_KEYBYTES);
-        let shash_u64 = sodium.crypto_shorthash('test', key, 'urlsafebase64'); // urlsafebase64 is support added by mitra
+        let shash_u64 = sodium.crypto_shorthash('test', key, 'base64'); // base64 should now be urlsafe
         key = null;
         let hash_hex = sodium.crypto_generichash(32, qbf, key, 'hex'); // Try this with null as the key
         let hash_64 = sodium.crypto_generichash(32, qbf, key, 'base64'); // Try this with null as the key
-        let hash_u64 = sodium.crypto_generichash(32, qbf, key, 'urlsafebase64'); // Try this with null as the key
+        let hash_u64 = sodium.crypto_generichash(32, qbf, key, 'base64'); // Try this with null as the key
         debugkeypair("hash_hex = %s %s %s %s",shash_u64, hash_hex, hash_64, hash_u64);
         if (hash_u64 !== "YOanaCqfg3UsKoqlNmVG7SFwLgDyB3aToEmLCH-vOzs=") { console.log("ERR Bad blake2 hash"); }
         let signingkey = sodium.crypto_sign_keypair();
