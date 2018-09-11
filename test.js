@@ -5,7 +5,7 @@ const { JSDOM } = jsdom;        //TODO - figure out what this does, dont underst
 htmlfake = '<!DOCTYPE html></html>';
 const dom = new JSDOM(htmlfake);
 document = dom.window.document;   // Note in JS can't see "document" like can in python
-localStorage.debug = "dweb-transports dweb-transports:* dweb-objects dweb-objects:*";
+process.env.DEBUG = "dweb-transports dweb-transports:* dweb-objects dweb-objects:*";
 global.DwebTransports = require('@internetarchive/dweb-transports'); // Manage all Transports that are loaded
 //SEE-OTHER-ADDTRANSPORT
 // Higher level object classes
@@ -101,7 +101,7 @@ async function p_test_KeyChain(acl) {
 
         console.log("KEYCHAIN 1 - add VL to KC");
         let vlmaster = await VersionList.p_new({name: "test_keychain vlmaster"}, true, {passphrase: "TESTING VLMASTER"},
-            await new SmartDict({content: qbf}); //(data, master, key, firstinstance)
+            await new SmartDict({content: qbf})); //(data, master, key, firstinstance)
         if (testasync) { console.log("Waiting - expect no output"); await delay(1000); }
 
         console.log("KEYCHAIN 2 - add viewerkeypair to it");
