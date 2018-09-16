@@ -157,7 +157,7 @@ class Leaf extends SmartDict {
             throw new errors.ResolutionError(err.message);
         }
     }
-    async p_boot({remainder=undefined, search_supplied=undefined, opentarget="_self", openChromeTab = undefined}={}) { //TODO-API
+    async p_boot({remainder=undefined, search_supplied=undefined, opentarget="_self", openChromeTab = undefined}={}) {
         /*
             Utility to display a Leaf, will probably need expanding to more kinds of media and situations via options
             Strategy depends on whether we expect relativeurls inside the HTML. If do, then need to do a window.open so that URL is correct, otherwise fetch and display as a blob

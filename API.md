@@ -7,6 +7,8 @@ It was last revised (to match the code) on 23 April 2018.
 
 If you find any discrepancies please add an issue here.
 
+See [Dweb document index](https://github.com/internetarchive/dweb-transports/blob/master/DOCUMENTINDEX.md) for a list of the repos that make up the Internet Archive's Dweb project, and an index of other documents. 
+
 ## Overview
 
 The object layer sits above the Transport layer and channels access to it through a set of objects. 
@@ -1156,7 +1158,7 @@ Sees it it can resolve the path in the Leaf further, because we know the type of
 ```
 path    / separated string to resolve in object
 ```
-##### async p_boot({remainder=undefined, search_supplied=undefined, opentarget="_self"}={})
+##### async p_boot({remainder=undefined, search_supplied=undefined, opentarget="_self", openChromeTab = undefined}={})
 Utility to display a Leaf, will probably need expanding to more kinds of media and situations via options
 Strategy depends on whether we expect relativeurls inside the HTML. 
 If do, then need to do a window.open so that URL is correct, otherwise fetch and display as a blob
@@ -1164,6 +1166,7 @@ If do, then need to do a window.open so that URL is correct, otherwise fetch and
 remainder:       Any remainder string to send to the attribute specified in "leaf.htmlpath if specified
 search_supplied: Anything supplied after the ? in the original URL, should be added to the search string
 opentarget:      Where to open the file, defaults to "_self"
+openChromeTab:   If specified open in this ChromeTab (used in extensions)
 thows:           First error encountered, if doesnt succeed with any url.
 ```
 ### Domain extends KeyValueTable and mixes in NameMixin & SignatureMixin

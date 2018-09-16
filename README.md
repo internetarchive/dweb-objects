@@ -71,16 +71,6 @@ const DwebObjects = require('@internetarchive/dweb-objects;)      #adds the obje
 * TODO writeup how to require only some of the transports.
 * Then see usage API below
 
-##See related:
 
-* [Archive.org](http://dweb.archive.org/details) bootstrap into the Archive's page
-* [Examples](http://dweb.me/examples) examples
-
-
-
-###Repos:
-* *dweb-transports:* Common API to underlying transports (http, webtorrent, ipfs, yjs)
-* *dweb-objects:* Object model for Dweb inc Lists, Authentication, Key/Value, Naming
-* *dweb-serviceworker:* Run Transports in ServiceWorker (experimental)
-* *dweb-archive:* Decentralized Archive webpage and bootstrapping 
-* *dweb-transport:* Original Repo, still includes examples but being split into smaller repos
+## See also
+See [Dweb document index](https://github.com/internetarchive/dweb-transports/blob/master/DOCUMENTINDEX.md) for a list of the repos that make up the Internet Archive's Dweb project, and an index of other documents. 
