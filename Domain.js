@@ -1,4 +1,5 @@
 const errors = require('./Errors'); // Standard Dweb Errors
+const Url = require('url');
 const debugdomain = require('debug')('dweb-objects:domain');
 // Depends on var DwebTransports being set externally - its done this way so that both direct and ServiceWorker/Proxy can be used
 const SmartDict = require("./SmartDict"); //for extends
@@ -565,8 +566,9 @@ class Domain extends KeyValueTable {
             }
         }
     }
-
 }
+
+
 NameMixin.call(Domain.prototype);   // Add in the Mixin
 SignatureMixin.call(Domain.prototype, ["tablepublicurls", "name", "keys", "expires"]);
 
