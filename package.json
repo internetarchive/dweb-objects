@@ -11,18 +11,18 @@
     "url": "https://github.com/internetarchive/dweb-objects/issues"
   },
   "dependencies": {
-    "@internetarchive/dweb-transports": "^0.1.16",
+    "@internetarchive/dweb-transports": "^0.1.18",
     "custom-event": "latest",
     "libsodium-wrappers": "^0.7.3",
     "multihashes": "^0.4.14",
     "sha.js": "latest",
-    "webpack": "^4.18.0"
+    "webpack": "^4.20.2"
   },
   "description": "Internet Archive Decentralized Web Transports Library",
   "devDependencies": {
-    "chai": "latest",
+    "chai": "^4.2.0",
     "jsdom": "^11.12.0",
-    "uglifyjs-webpack-plugin": "latest",
+    "uglifyjs-webpack-plugin": "^2.0.1",
     "webpack-command": "^0.4.1",
     "y-leveldb": "latest"
   },
@@ -41,5 +41,5 @@
     "help": "echo 'test (test it), webpack (build it), setuphttp (link files for http access);'",
     "setuphttp": "ln -s ../node_modules/@internetarchive/dweb-transports/dist/dweb-transports-bundle.js dist;"
   },
-  "version": "0.1.11"
+  "version": "0.1.12"
 }
