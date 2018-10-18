@@ -310,12 +310,14 @@ class Domain extends KeyValueTable {
 
     static async p_rootSet( ){
         //TODO-CONFIG put this (and other TODO-CONFIG into config file)
+        // Rejects: ??? if net down
         this.root = await SmartDict.p_fetch(rootSetPublicUrls,  {timeoutMS: 5000});
     }
 
     static async p_rootResolve(path) {
         // path of form (dweb:)/name/subname/subsubname/...
         // returns
+        // rejects ??? if net down
         debugdomain("Resolving: %s in root", path);
         if (!this.root)
             await this.p_rootSet();
