@@ -1,4 +1,6 @@
-localStorage.debug = "dweb-transports dweb-transports:* dweb-objects dweb-objects:*";
+debugstr = "dweb-transports dweb-transports:* dweb-objects dweb-objects:*"
+if (typeof localStorage !== "undefined") localStorage.debug = debugstr;
+process.env.DEBUG = debugstr;
 
 // Fake a browser like environment for some tests inc in Node CreateCustomEvent
 const jsdom = require("jsdom");
