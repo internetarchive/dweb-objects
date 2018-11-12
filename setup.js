@@ -28,7 +28,7 @@ const Domain = require('./Domain');
 // Utility packages (ours) And one-liners
 //function delay(ms, val) { return new Promise(resolve => {setTimeout(() => { resolve(val); },ms)})}
 
-require('y-leveldb')(DwebTransports._transportclasses["YJS"].Y); //- can't be there for browser, node seems to find it ok without this and auto-loads with a warning.
+//require('y-leveldb')(DwebTransports._transportclasses["YJS"].Y); //- can't be there for browser, node seems to find it ok without this and auto-loads with a warning.
 // Note that this test setup is being mirror in test_ipfs.html
 // In general it should be possible to comment out failing tests EXCEPT where they provide a value to the next */
 
