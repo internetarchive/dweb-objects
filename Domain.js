@@ -10,7 +10,8 @@ const KeyChain = require('./KeyChain'); // Hold a set of keys, and locked object
 // noinspection JSUnusedLocalSymbols
 const AccessControlList = require('./AccessControlList');   // Required (though not used in this code) to make sure decryption is patched in
 
-const rootSetPublicUrls =  [ 'contenthash:/contenthash/QmVFh13MW42ksJCCj73SGS5MzKggeyu1DmxsvteDnJPkmk' ];
+//const rootSetPublicUrls =  [ 'contenthash:/contenthash/QmVFh13MW42ksJCCj73SGS5MzKggeyu1DmxsvteDnJPkmk' ];
+const rootSetPublicUrls =  [ 'contenthash:/contenthash/QmP4EoXsdKQapKABnfczzSNpYRTwDUMeoPZXiD8fwXZ4t2' ];
 //Mixins based on https://javascriptweblog.wordpress.com/2011/05/31/a-fresh-look-at-javascript-mixins/
 
 const SignatureMixin = function(fieldlist) {
@@ -415,7 +416,7 @@ class Domain extends KeyValueTable {
         }); //root
         const testing = Domain.root.tablepublicurls.map(u => u.includes("localhost")).includes(true);
         if (JSON.stringify(Domain.root._publicurls) === JSON.stringify(rootSetPublicUrls)) {
-            console.log("root urls havent changed");
+            console.log("root urls havent changed still", Domain.root._publicurls);
         } else {
             console.log(testing ? "publicurls for testing" : "Put these Domain.root public urls in const rootSetPublicUrls", Domain.root._publicurls);
         }
