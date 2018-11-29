@@ -199,6 +199,7 @@ class KeyPair extends SmartDict {
             let arr = value.split(':',2);
             let tag = arr[0];
             let hash = (arr[1].length === 44 && arr[1][43] === '=') ? arr[1].slice(0,43) : arr[1];
+            debugkeypair("_importkey b64hash= %s",hash);
             console.assert(hash.length===43,"hash invalid length");
             let hasharr = sodium.from_base64(hash);
             //See https://github.com/jedisct1/libsodium.js/issues/91 for issues
