@@ -41,5 +41,5 @@
     "help": "echo 'test (test it), webpack (build it), setuphttp (link files for http access);'",
     "setuphttp": "ln -s ../node_modules/@internetarchive/dweb-transports/dist/dweb-transports-bundle.js dist;"
   },
-  "version": "0.1.18"
+  "version": "0.1.20"
 }
