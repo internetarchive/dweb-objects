@@ -11,9 +11,9 @@
     "url": "https://github.com/internetarchive/dweb-objects/issues"
   },
   "dependencies": {
-    "@internetarchive/dweb-transports": "^0.1.25",
+    "@internetarchive/dweb-transports": "^0.1.30",
     "custom-event": "^1.0.1",
-    "jsdom": "^13.0.0",
+    "jsdom": "^13.1.0",
     "libsodium-wrappers": "^0.7.3",
     "multihashes": "^0.4.14",
     "sha.js": "^2.4.11"
