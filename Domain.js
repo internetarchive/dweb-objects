@@ -356,6 +356,8 @@ class Domain extends KeyValueTable {
             return await res.p_resolve(remainder.join('/'));           // ===== Note recursion ====
             //TODO need other classes e.g. SD  etc to handle p_resolve as way to get path
         } else {
+            //default = await res.p_resolve('/'); // Look for a "/" leaf
+            //if (default)
             console.warn("Unable to resolve",name,"in",this.name);
             return [ undefined, path ];
         }
@@ -387,6 +389,8 @@ class Domain extends KeyValueTable {
 
         */
         //TODO-NAME add ipfs address and ideally ipns address to archiveOrgDetails record
+        //TODO-NAME - this should have a "downloads" Wort will add it ,
+        //TODO-NAME - this should have a default i.e. archive.org/* (distinct from archive.org/)
         //p_new should add registrars at whichever compliant transports are connected (YJS, HTTP)
         Domain.root = await Domain.p_new({_acl: archiveadminkc, name: "/", keychain: archiveadminkc}, true, {passphrase: pass2+"/"}, [], {   //TODO-NAME will need a secure root key and a way to load here securely
             arc: await Domain.p_new({_acl: archiveadminkc, keychain: archiveadminkc},true, {passphrase: pass2+"/arc"}, [], { // /arc domain points at our top level resolver.
