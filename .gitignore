@@ -2,3 +2,4 @@ node_modules
 dweb-transports-bundle.js
 /package-lock.json
 /dist/dweb-transports-bundle.js
+yarn.lock

@@ -17,7 +17,6 @@ const rootSetPublicUrls =  [ 'contenthash:/contenthash/QmP4EoXsdKQapKABnfczzSNpY
 const SignatureMixin = function(fieldlist) {
     /*
         This mixin is a generic signature tool, allows to specify which fields of an object should be signed/verified.
-
         Fields:
         signatures: [{
             date,                   ISODate when signed
@@ -73,13 +72,11 @@ const NameMixin = function(options) {
     /*
         This Mixin defines fields and methods needed to name something in a Domain,
         Typically this will be either: another Domain; another SmartDict or class; raw content (e.g a PDF or HTML.
-
     Signed Fields
     tableurls | tablepublicurls    Where to find the object (or table if its a domain)
     expires: ISODATE         When this name should be considered expired (it might still be resolved, but not if newer names available.
     (there is no validfrom time, this is implicitly when it was signed)
     name: str               Names that this record applies to relative to table its in. e.g.  fred, father
-
      */
     this.nameConstructor = function() {
         this.expires = this.expires || undefined;    // If Hasn't set
@@ -89,7 +86,6 @@ const NameMixin = function(options) {
 class Leaf extends SmartDict {
     /*
         The Leaf class is used to register another object in a domain.
-
         Fields
         urls: Points at object being named (for a SmartDict object its obj._publicurls)
         mimetype:   Mimetype of content esp application/json
@@ -99,7 +95,6 @@ class Leaf extends SmartDict {
                     jsontype: archive.org.metadata is for archive.org metadata
         Fields inherited from SignatureMixin: signatures
         Fields inherited from NameMixin: expires; name;
-
      */
     constructor(data, options) {
         super(data, options);
@@ -163,7 +158,6 @@ class Leaf extends SmartDict {
         /*
             Utility to display a Leaf, will probably need expanding to more kinds of media and situations via options
             Strategy depends on whether we expect relativeurls inside the HTML. If do, then need to do a window.open so that URL is correct, otherwise fetch and display as a blob
-
             remainder:  Any remainder string to send to the attribute specified in "leaf.htmlpath if specified
             search_supplied:    Anything supplied in after the ? in the original URL, should be added to the search string
             opentarget: Where to open the file, defaults to "_self"
@@ -221,18 +215,12 @@ SmartDict.table2class["leaf"] = Leaf;
 class Domain extends KeyValueTable {
     /*
     The Domain class is for name resolution across multiple technologies.
-
     Domains are of the form /arc/somedomain/somepath/somename
-
     Where signed records at each level lead to the next level
-
     Fields:
     keys: [NACL VERIFY:xyz*]   Public Key to use to verify entries - identified by type, any of these keys can be used to sign a record
-
-
     Fields inherited from NameMixin: name; expires;
     Fields inherited from SignatureMixin: signatures
-
     Fields inherited from KeyValueTable
     tablepublicurls: [ str* ]       Where to find the table.
     _map:   KeyValueTable   Mapping of name strings beneath this Domain
@@ -287,7 +275,6 @@ class Domain extends KeyValueTable {
         Register an object
         name:   What to register it under, relative to "this"
         registrable:    Either a Domain or Leaf, or else something with _publicurls or _urls (i.e. after calling p_store) and it will be wrapped with a Leaf
-
         Code path is domain.p_register -> domain.p_set
          */
         if (!(registrable instanceof Domain || registrable instanceof Leaf)) {
@@ -375,7 +362,7 @@ class Domain extends KeyValueTable {
         //TODO-NAMING change passphrases to something secret, figure out what need to change
         const pass1 = "all knowledge for all time to everyone for free"; // TODO-NAMING make something secret
         const pass2 = "Replace this with something secret"; // Base for other keys during testing - TODO-NAMING replace with keygen: true so noone knows private key
-        const archiveadminkc = await KeyChain.p_new({name: "Archive.org Admin"}, {passphrase: "Archive.org Admin/" + pass1});  // << THis is what you login as
+        const archiveadminkc = await KeyChain.p_new({name: "Archive.org Admin"}, {passphrase: "Archive.org Admin/" + pass1})
         //const archiveadminacl = await AccessControlList.p_new({name: "Archive.org Administrators", _acl: archiveadminkc}, true, {keygen: true}, {}, archiveadminkc);  //data, master, key, options, kc
         //const archiveadminkey = new KeyPair({name: "Archive.org Admin", key: {keygen: true}, _acl: archiveadminkc} );
         //await archiveadminkc.p_push(archiveadminkey);
@@ -385,8 +372,6 @@ class Domain extends KeyValueTable {
             archiveadminkc is the keychain owned by the Archive Administrator (who logs in with its ID/passphrase)
             Each domain has a random private key (for now I've used a passphase to generate them so that tests dont rebuild data structures)
             / /arc /arc/archive.org /arc/archive.org/metadata domains have _acl=archiveadminkc so only Archive Admin can see the private key which is needed to register
-
-
         */
         //TODO-NAME add ipfs address and ideally ipns address to archiveOrgDetails record
         //TODO-NAME - this should have a "downloads" Wort will add it ,
@@ -405,7 +390,7 @@ class Domain extends KeyValueTable {
                     "images": await Leaf.p_new({urls: ["https://dweb.me/archive/images/"], metadata: {htmlpath: "/" }}, {}),
                     "serve": await Leaf.p_new({urls: ["https://dweb.archive.org/download/"], metadata: {htmlpath: "/" }}, {}), // Example is in commute.description
                     //"metadata": await Domain.p_new({_acl: archiveadminkc, keychain: archiveadminkc}, true, {passphrase: pass2+"/arc/archive.org/metadata"}, [metadataGateway], {}),
-                    "metadata": await Leaf.p_new({urls: ["gun:/gun/arc/archive.org/metadata/", "https://dweb.archive.org/metadata/"], metadata: {htmlpath: "/" }}, {}),
+                    "metadata": await Leaf.p_new({urls: ["wolk://arc/archive.org/metadata/", "gun:/gun/arc/archive.org/metadata/", "https://dweb.archive.org/metadata/"], metadata: {htmlpath: "/" }}, {}),
                     //"metadata": await Leaf.p_new({urls: ["gun:/gun/arc/archive.org/metadata/"], metadata: {htmlpath: "/" }}, {}),  //TODO-GUN See hack - where - to use temp?
                     "search.php": await Leaf.p_new({urls: ["https://dweb.me/archive/archive.html"], mimetype: "text/html",
                         metadata: {htmlusesrelativeurls: true, htmlpath: "query"}}, {}),
@@ -550,7 +535,6 @@ class Domain extends KeyValueTable {
         search_supplied: Anything supplied in after the ? in the original URL, should be added to the url.search string (part after "?")
         opentarget:      Where to open the file, defaults to "_self"
         throws:          Error if cant resolve to a Leaf, or Error from loading the Leaf
-
         TODO - are there any cases where want to try multiple names -dont think so
          */
         let nameandsearch = name.split('?');

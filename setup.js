@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 debugstr = "dweb-transports dweb-transports:* dweb-objects dweb-objects:*"
 if (typeof localStorage !== "undefined") localStorage.debug = debugstr;
 process.env.DEBUG = debugstr;
