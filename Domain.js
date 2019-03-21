@@ -390,7 +390,7 @@ class Domain extends KeyValueTable {
                     "images": await Leaf.p_new({urls: ["https://dweb.me/archive/images/"], metadata: {htmlpath: "/" }}, {}),
                     "serve": await Leaf.p_new({urls: ["https://dweb.archive.org/download/"], metadata: {htmlpath: "/" }}, {}), // Example is in commute.description
                     //"metadata": await Domain.p_new({_acl: archiveadminkc, keychain: archiveadminkc}, true, {passphrase: pass2+"/arc/archive.org/metadata"}, [metadataGateway], {}),
-                    "metadata": await Leaf.p_new({urls: ["wolk://arc/archive.org/metadata/", "gun:/gun/arc/archive.org/metadata/", "https://dweb.archive.org/metadata/"], metadata: {htmlpath: "/" }}, {}),
+                    "metadata": await Leaf.p_new({urls: ["wolk://dweb.archive.org/metadata/", "gun:/gun/arc/archive.org/metadata/", "https://dweb.archive.org/metadata/"], metadata: {htmlpath: "/" }}, {}),
                     //"metadata": await Leaf.p_new({urls: ["gun:/gun/arc/archive.org/metadata/"], metadata: {htmlpath: "/" }}, {}),  //TODO-GUN See hack - where - to use temp?
                     "search.php": await Leaf.p_new({urls: ["https://dweb.me/archive/archive.html"], mimetype: "text/html",
                         metadata: {htmlusesrelativeurls: true, htmlpath: "query"}}, {}),
