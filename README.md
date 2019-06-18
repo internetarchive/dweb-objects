@@ -76,4 +76,6 @@ const DwebObjects = require('@internetarchive/dweb-objects;)      #adds the obje
 See [Dweb document index](https://github.com/internetarchive/dweb-transports/blob/master/DOCUMENTINDEX.md) for a list of the repos that make up the Internet Archive's Dweb project, and an index of other documents. 
 
 ## Release Notes
-*  0.1.22 Include Wolk changes to names
+
+* 0.1.23 2019-06-18 Local root tree instead of fetching with contenthash
+* 0.1.22 Include Wolk changes to names
