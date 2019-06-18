@@ -13,8 +13,11 @@ const AccessControlList = require('./AccessControlList');   // Required (though 
 //const rootSetPublicUrls =  [ 'contenthash:/contenthash/QmVFh13MW42ksJCCj73SGS5MzKggeyu1DmxsvteDnJPkmk' ];
 const rootSetPublicUrls =  [ 'contenthash:/contenthash/QmP4EoXsdKQapKABnfczzSNpYRTwDUMeoPZXiD8fwXZ4t2' ];
 //Mixins based on https://javascriptweblog.wordpress.com/2011/05/31/a-fresh-look-at-javascript-mixins/
+const pass1 = "all knowledge for all time to everyone for free"; // TODO-NAMING make something secret
+const pass2 = "Replace this with something secret"; // Base for other keys during testing - TODO-NAMING replace with keygen: true so noone knows private key
 
-const SignatureMixin = function(fieldlist) {
+
+    const SignatureMixin = function(fieldlist) {
     /*
         This mixin is a generic signature tool, allows to specify which fields of an object should be signed/verified.
         Fields:
@@ -191,7 +194,7 @@ class Leaf extends SmartDict {
                 if (urlloaded) {
                     debugdomain("Succeeded to open", urlloaded.href);
                 } else if (errs.length) {
-                    throw err[0];   // First error encountered
+                    throw errs[0];   // First error encountered
                 } else {
                     throw new Error("Unable to open any URL in Leaf");
                 }
@@ -244,8 +247,12 @@ class Domain extends KeyValueTable {
             await obj.keychain.p_push(obj);
         }
         for (let j in kids ) {
-            // noinspection JSUnfilteredForInLoop
-            await obj.p_register(j, kids[j]);
+            if (key) {
+                await obj.p_register(j, kids[j]);
+            } else {
+                // If we dont have a key, just store it locally
+                this._map[j] = kids[j];
+            }
         }
         return obj;
     }
@@ -299,7 +306,8 @@ class Domain extends KeyValueTable {
     static async p_rootSet( ){
         //TODO-CONFIG put this (and other TODO-CONFIG into config file)
         // Rejects: ??? if net down
-        this.root = await SmartDict.p_fetch(rootSetPublicUrls,  {timeoutMS: 5000});
+        this.root = await this._initialDomainTree(undefined); // No key passed so just use local copy
+        //this.root = await SmartDict.p_fetch(rootSetPublicUrls,  {timeoutMS: 5000});
     }
 
     static async p_rootResolve(path) {
@@ -355,14 +363,43 @@ class Domain extends KeyValueTable {
         return `${indent.repeat(indentlevel)}${this.name} @ ${this.tablepublicurls.join(', ')}${this.expires ? " expires:"+this.expires : ""}\n`
             + ((indentlevel >= maxindent) ? "..." : (await Promise.all((await this.p_keys()).map(k => this._map[k].p_printable({indent, indentlevel: indentlevel + 1, maxindent: maxindent})))).join(''))
     }
+
+    static async _initialDomainTree(archiveadminkc) {
+        const master = (typeof archiveadminkc !== "undefined")
+        return await Domain.p_new({_acl: archiveadminkc, name: "/", keychain: archiveadminkc}, master, {passphrase: pass2+"/"}, [], {   //TODO-NAME will need a secure root key and a way to load here securely
+            arc: await Domain.p_new({_acl: archiveadminkc, keychain: archiveadminkc},master, {passphrase: pass2+"/arc"}, [], { // /arc domain points at our top level resolver.
+                "archive.org": await Domain.p_new({_acl: archiveadminkc, keychain: archiveadminkc}, master, {passphrase: pass2+"/arc/archive.org"}, [], {
+                    ".": await Leaf.p_new({urls: ["https://dweb.me/archive/archive.html"], mimetype: "text/html",
+                        metadata: {htmlusesrelativeurls: true}}, {}),
+                    "about": await Leaf.p_new({urls: ["https://archive.org/about/"], metadata: {htmlpath: "/" }}, {}),
+                    //TODO-ARC change these once dweb.me fixed
+                    "details": await Leaf.p_new({urls: ["https://dweb.me/archive/archive.html"], mimetype: "text/html",
+                        metadata: {htmlusesrelativeurls: true, htmlpath: "item"}},[], {}),
+                    "examples": await Leaf.p_new({urls: ["https://dweb.me/archive/examples/"], metadata: {htmlpath: "/" }}, {}),
+                    "images": await Leaf.p_new({urls: ["https://dweb.me/archive/images/"], metadata: {htmlpath: "/" }}, {}),
+                    "serve": await Leaf.p_new({urls: ["https://dweb.archive.org/download/"], metadata: {htmlpath: "/" }}, {}), // Example is in commute.description
+                    //"metadata": await Domain.p_new({_acl: archiveadminkc, keychain: archiveadminkc}, master, {passphrase: pass2+"/arc/archive.org/metadata"}, [metadataGateway], {}),
+                    "metadata": await Leaf.p_new({urls: ["wolk://dweb.archive.org/metadata/", "gun:/gun/arc/archive.org/metadata/", "https://dweb.archive.org/metadata/"], metadata: {htmlpath: "/" }}, {}),
+                    //"metadata": await Leaf.p_new({urls: ["gun:/gun/arc/archive.org/metadata/"], metadata: {htmlpath: "/" }}, {}),  //TODO-GUN See hack - where - to use temp?
+                    "search.php": await Leaf.p_new({urls: ["https://dweb.me/archive/archive.html"], mimetype: "text/html",
+                        metadata: {htmlusesrelativeurls: true, htmlpath: "query"}}, {}),
+                    "search": await Leaf.p_new({urls: ["https://dweb.me/archive/archive.html"], mimetype: "text/html",
+                        metadata: {htmlusesrelativeurls: true, htmlpath: "query"}}, {})
+                    //Note I was seeing a lock error here, but cant repeat now - commenting out one of these last two lines seemed to clear it.
+                })
+            }),
+            ipfs: await Leaf.p_new({urls: ["http://ipfs.io/ipfs/", "https://dweb.me/ipfs/"],  metadata: {htmlpath: "/" }}, {}),
+            //TODO-IPFS, running into problems as of 22Jul2018 with files.cat, so skipping direct ipfs load till figure out.
+            //ipfs: await Leaf.p_new({urls: ["ipfs:/ipfs/", "http://ipfs.io/ipfs/", "https://dweb.me/ipfs/"],  metadata: {htmlpath: "/" }}, {}),
+        }); //root
+    }
+
     static async p_setupOnce() {
         //const metadatagateway = 'http://localhost:4244/leaf/archiveid';
         //const metadataGateway = 'https://dweb.me/leaf/archiveid';
         const metadataGateway = 'https://dweb.archive.org/leaf';
         //TODO-NAMING change passphrases to something secret, figure out what need to change
-        const pass1 = "all knowledge for all time to everyone for free"; // TODO-NAMING make something secret
-        const pass2 = "Replace this with something secret"; // Base for other keys during testing - TODO-NAMING replace with keygen: true so noone knows private key
-        const archiveadminkc = await KeyChain.p_new({name: "Archive.org Admin"}, {passphrase: "Archive.org Admin/" + pass1})
+        const archiveadminkc = await KeyChain.p_new({name: "Archive.org Admin"}, {passphrase: "Archive.org Admin/" + pass1});
         //const archiveadminacl = await AccessControlList.p_new({name: "Archive.org Administrators", _acl: archiveadminkc}, true, {keygen: true}, {}, archiveadminkc);  //data, master, key, options, kc
         //const archiveadminkey = new KeyPair({name: "Archive.org Admin", key: {keygen: true}, _acl: archiveadminkc} );
         //await archiveadminkc.p_push(archiveadminkey);
@@ -377,39 +414,14 @@ class Domain extends KeyValueTable {
         //TODO-NAME - this should have a "downloads" Wort will add it ,
         //TODO-NAME - this should have a default i.e. archive.org/* (distinct from archive.org/)
         //p_new should add registrars at whichever compliant transports are connected (YJS, HTTP)
-        Domain.root = await Domain.p_new({_acl: archiveadminkc, name: "/", keychain: archiveadminkc}, true, {passphrase: pass2+"/"}, [], {   //TODO-NAME will need a secure root key and a way to load here securely
-            arc: await Domain.p_new({_acl: archiveadminkc, keychain: archiveadminkc},true, {passphrase: pass2+"/arc"}, [], { // /arc domain points at our top level resolver.
-                "archive.org": await Domain.p_new({_acl: archiveadminkc, keychain: archiveadminkc}, true, {passphrase: pass2+"/arc/archive.org"}, [], {
-                    ".": await Leaf.p_new({urls: ["https://dweb.me/archive/archive.html"], mimetype: "text/html",
-                        metadata: {htmlusesrelativeurls: true}}, {}),
-                    "about": await Leaf.p_new({urls: ["https://archive.org/about/"], metadata: {htmlpath: "/" }}, {}),
-                    //TODO-ARC change these once dweb.me fixed
-                    "details": await Leaf.p_new({urls: ["https://dweb.me/archive/archive.html"], mimetype: "text/html",
-                        metadata: {htmlusesrelativeurls: true, htmlpath: "item"}},[], {}),
-                    "examples": await Leaf.p_new({urls: ["https://dweb.me/archive/examples/"], metadata: {htmlpath: "/" }}, {}),
-                    "images": await Leaf.p_new({urls: ["https://dweb.me/archive/images/"], metadata: {htmlpath: "/" }}, {}),
-                    "serve": await Leaf.p_new({urls: ["https://dweb.archive.org/download/"], metadata: {htmlpath: "/" }}, {}), // Example is in commute.description
-                    //"metadata": await Domain.p_new({_acl: archiveadminkc, keychain: archiveadminkc}, true, {passphrase: pass2+"/arc/archive.org/metadata"}, [metadataGateway], {}),
-                    "metadata": await Leaf.p_new({urls: ["wolk://dweb.archive.org/metadata/", "gun:/gun/arc/archive.org/metadata/", "https://dweb.archive.org/metadata/"], metadata: {htmlpath: "/" }}, {}),
-                    //"metadata": await Leaf.p_new({urls: ["gun:/gun/arc/archive.org/metadata/"], metadata: {htmlpath: "/" }}, {}),  //TODO-GUN See hack - where - to use temp?
-                    "search.php": await Leaf.p_new({urls: ["https://dweb.me/archive/archive.html"], mimetype: "text/html",
-                        metadata: {htmlusesrelativeurls: true, htmlpath: "query"}}, {}),
-                    "search": await Leaf.p_new({urls: ["https://dweb.me/archive/archive.html"], mimetype: "text/html",
-                        metadata: {htmlusesrelativeurls: true, htmlpath: "query"}}, {})
-                    //Note I was seeing a lock error here, but cant repeat now - commenting out one of these last two lines seemed to clear it.
-                })
-            }),
-            ipfs: await Leaf.p_new({urls: ["http://ipfs.io/ipfs/", "https://dweb.me/ipfs/"],  metadata: {htmlpath: "/" }}, {}),
-            //TODO-IPFS, running into problems as of 22Jul2018 with files.cat, so skipping direct ipfs load till figure out.
-            //ipfs: await Leaf.p_new({urls: ["ipfs:/ipfs/", "http://ipfs.io/ipfs/", "https://dweb.me/ipfs/"],  metadata: {htmlpath: "/" }}, {}),
-        }); //root
+        Domain.root = await Domain._initialDomainTree(archiveadminkc);
         const testing = Domain.root.tablepublicurls.map(u => u.includes("localhost")).includes(true);
         if (JSON.stringify(Domain.root._publicurls) === JSON.stringify(rootSetPublicUrls)) {
             console.log("root urls havent changed still", Domain.root._publicurls);
         } else {
             console.log(testing ? "publicurls for testing" : "Put these Domain.root public urls in const rootSetPublicUrls", Domain.root._publicurls);
         }
-        const metadatatableurls = Domain.root._map["arc"]._map["archive.org"]._map["metadata"].tablepublicurls
+        const metadatatableurls = Domain.root._map["arc"]._map["archive.org"]._map["metadata"].tablepublicurls;
         const metadatatableurl = metadatatableurls ? metadatatableurls.find(u=>u.includes("getall/table")) : undefined;
         if (metadatatableurl && !testing) {
             console.log("Put this in gateway config.py config.domains.metadata:", metadatatableurl);

@@ -99,7 +99,7 @@ class AccessControlList extends CommonList {
         }
     }
 
-    async p_tokens() { //TODO-BACKPORT
+    async p_tokens() {
         /*
         Return the list of tokens on this ACL. Side effect of loading data on each Signature in this._list
         resolves to: [ SmartDict{token:, viewer:, name: }, ... ]
