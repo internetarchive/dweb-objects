@@ -12,8 +12,8 @@
   },
   "dependencies": {
     "@internetarchive/dweb-transports": "^0.1.53",
-    "debug": "^4.1.1",
     "custom-event": "^1.0.1",
+    "debug": "^4.1.1",
     "jsdom": "^13.2.0",
     "libsodium-wrappers": "^0.7.4",
     "multihashes": "^0.4.14",

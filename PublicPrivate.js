@@ -193,7 +193,7 @@ class PublicPrivate extends SmartDict {
 
     // ----- Listener interface ----- see https://developer.mozilla.org/en-US/docs/Web/API/EventTarget for the pattern
 
-    addEventListener(type, callback) {
+    addEventListener(type, callback, unusedOpts) {
         /*
         Add an event monitor for this list, for example if the UI wants to monitor when things are added.
         type:  Currently supports "insert"
@@ -222,8 +222,6 @@ class PublicPrivate extends SmartDict {
         /* Called when event triggered by monitor or listmonitor
            Stack: KVT()|KVT.p_new => KVT.monitor => (a: DwebTransports.monitor => YJS.monitor)(b: dispatchEvent)
          */
-
-
         console.log("PP.dispatchEvent", event);
         if (!(event.type in this._listeners)) return true;
         let stack = this._listeners[event.type];
